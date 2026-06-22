@@ -1,0 +1,59 @@
+# Java / Maven
+/backend/target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/.env
+frontend/.env.*
+
+# IDEs and editor files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Secret and credential files
+*.key
+*.pem
+*.p12
+*.jks
+*.crt
+*.csr
+*.pfx
+*.env
+*.env.*
+*.secret
+*.secrets
+*credentials*
+*secret*
+
+# Temporary files
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
