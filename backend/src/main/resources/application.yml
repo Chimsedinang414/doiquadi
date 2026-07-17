@@ -3,7 +3,7 @@ spring:
     name: LocalFood Backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/localfood_db
+    url: jdbc:mysql://localhost:3306/doiquadi
     username: root
     password: 1234567
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,4 +25,4 @@ server:
 logging:
   level:
     root: INFO
-    com.localfood: DEBUG
+    com.doiquadi: DEBUG
