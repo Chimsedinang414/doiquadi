@@ -16,6 +16,7 @@ public class Food {
     @Id
     @GeneratedValue
     @UuidGenerator
+    @Column(length = 36, updatable = false, nullable = false)
     private String id;
 
     @NotBlank

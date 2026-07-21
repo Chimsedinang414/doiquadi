@@ -10,21 +10,22 @@ import java.math.BigDecimal;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = locations)
+@Table(name = "locations")
 @Getter @Setter @NoArgsConstructor
 public class Location {
     @Id @GeneratedValue @UuidGenerator
+    @Column(length = 36, updatable = false, nullable = false)
     private String id;
     @NotBlank @Column(nullable = false)
     private String name;
     private String address;
     private Double latitude;
     private Double longitude;
-    @Column(name = open_time)
+    @Column(name = "open_time")
     private LocalTime openTime;
-    @Column(name = close_time)
+    @Column(name = "close_time")
     private LocalTime closeTime;
     private String phone;
-    @Column(name = avg_price)
+    @Column(name = "avg_price")
     private BigDecimal averagePrice;
 }

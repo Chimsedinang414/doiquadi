@@ -38,13 +38,13 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String password;
 
-    @Column(name = avatar_url, length = 500)
+    @Column(name = "avatar_url", length = 500)
     private String avatar;
 
-    @Column(columnDefinition = TEXT)
+    @Column(columnDefinition = "TEXT")
     private String bio;
 
     @CreationTimestamp
-    @Column(name = created_at, nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 }
