@@ -1,7 +1,4 @@
 
--- MẠNG XÃ HỘI CHIA SẺ ĐỊA ĐIỂM ĂN UỐNG
-
-
 -- 1. User
 CREATE TABLE users (
     id CHAR(36) PRIMARY KEY,
