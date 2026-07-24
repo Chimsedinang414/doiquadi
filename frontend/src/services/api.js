@@ -21,6 +21,8 @@ export const api = {
   getLocations: () => client.get('/locations').then(response => response.data),
   getLocation: id => client.get('/locations/' + id).then(response => response.data),
   createLocation: data => client.post('/locations', data).then(response => response.data),
+  presignUpload: data => client.post('/uploads/presign', data).then(response => response.data),
+  completeUpload: data => client.post('/uploads/complete', data).then(response => response.data),
   toggleFavorite: data => client.put('/favorites', data).then(response => response.data),
   getFavorites: userId => client.get('/users/' + userId + '/favorites').then(response => response.data),
   getNotifications: userId => client.get('/users/' + userId + '/notifications').then(response => response.data),
@@ -28,6 +30,30 @@ export const api = {
   login: data => client.post('/auth/login', data).then(response => response.data),
   register: data => client.post('/auth/register', data).then(response => response.data),
 };
+
+export async function uploadImage(file, userId, onProgress) {
+  const presigned = await api.presignUpload({
+    userId,
+    fileName: file.name,
+    contentType: file.type,
+    fileSize: file.size,
+  });
+
+  await axios.put(presigned.uploadUrl, file, {
+    headers: presigned.requiredHeaders,
+    timeout: 120000,
+    onUploadProgress: event => {
+      if (event.total && onProgress) {
+        onProgress(Math.round((event.loaded * 100) / event.total));
+      }
+    },
+  });
+
+  return api.completeUpload({
+    userId,
+    objectKey: presigned.objectKey,
+  });
+}
 
 export function getCurrentUser() {
   try {

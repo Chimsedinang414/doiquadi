@@ -38,10 +38,14 @@ export default function ExplorePage({ onNavigateToDetail }) {
             onClick={() => onNavigateToDetail?.(location.id)}
             title={location.name}
           >
-            <div className="explore-img explore-placeholder"
-              style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
-              <Icon name="picture" alt="" className="grid-placeholder-icon" />
-            </div>
+            {location.imageUrls?.[0] ? (
+              <img className="explore-img" src={location.imageUrls[0]} alt={location.name} />
+            ) : (
+              <div className="explore-img explore-placeholder"
+                style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
+                <Icon name="picture" alt="" className="grid-placeholder-icon" />
+              </div>
+            )}
             <div className="explore-overlay">
               <span>{location.name}</span>
               <span>{location.averagePrice ? Number(location.averagePrice).toLocaleString('vi-VN') + 'đ' : ''}</span>

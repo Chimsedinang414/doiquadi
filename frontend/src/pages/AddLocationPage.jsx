@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
-import { api } from '../services/api';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { api, getCurrentUser, uploadImage } from '../services/api';
 import Icon from '../styles/icon';
 
+const MAX_IMAGES = 4;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
 export default function AddLocationPage({ onBack }) {
+  const currentUser = getCurrentUser();
+  const fileInputRef = useRef(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -15,16 +23,51 @@ export default function AddLocationPage({ onBack }) {
   });
 
   const categories = ['Phở', 'Bún Bò', 'Bánh Mì', 'Cơm Tấm', 'Lẩu', 'Cà phê', 'Tráng miệng', 'Khác'];
+  const previews = useMemo(
+    () => selectedFiles.map(file => ({ file, url: URL.createObjectURL(file) })),
+    [selectedFiles],
+  );
+
+  useEffect(() => () => previews.forEach(preview => URL.revokeObjectURL(preview.url)), [previews]);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const selectFiles = files => {
+    const candidates = Array.from(files || []);
+    const invalid = candidates.find(file =>
+      !ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE);
+    if (invalid) {
+      setError('Chỉ hỗ trợ JPG, PNG, WEBP, GIF và tối đa 10MB mỗi ảnh');
+      return;
+    }
+    setSelectedFiles(previous => [...previous, ...candidates].slice(0, MAX_IMAGES));
+    setError('');
+  };
+
+  const removeFile = index => {
+    setSelectedFiles(previous => previous.filter((_, fileIndex) => fileIndex !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setUploadProgress(0);
     setError('');
     try {
+      if (selectedFiles.length && !currentUser?.id) {
+        throw new Error('Bạn cần đăng nhập để tải ảnh địa điểm');
+      }
+      const uploaded = [];
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        const result = await uploadImage(selectedFiles[index], currentUser.id, progress => {
+          const overall = ((index + progress / 100) / selectedFiles.length) * 100;
+          setUploadProgress(Math.round(overall));
+        });
+        uploaded.push(result);
+      }
+
       const prices = [form.priceMin, form.priceMax].filter(Boolean).map(Number);
       await api.createLocation({
         name: form.name,
@@ -35,6 +78,8 @@ export default function AddLocationPage({ onBack }) {
         openTime: null,
         closeTime: null,
         averagePrice: prices.length ? prices.reduce((sum, value) => sum + value, 0) / prices.length : null,
+        userId: currentUser?.id || null,
+        imageKeys: uploaded.map(image => image.objectKey),
       });
       setSubmitted(true);
       setTimeout(() => onBack?.(), 1200);
@@ -74,15 +119,48 @@ export default function AddLocationPage({ onBack }) {
         {/* Upload */}
         <div
           className="upload-area"
-          onClick={() => document.getElementById('img-upload').click()}
+          onClick={() => !submitting && fileInputRef.current?.click()}
+          onKeyDown={event => {
+            if (!submitting && (event.key === 'Enter' || event.key === ' ')) fileInputRef.current?.click();
+          }}
           role="button"
+          tabIndex={0}
           aria-label="Upload ảnh"
           id="upload-area"
         >
-          <input type="file" id="img-upload" hidden accept="image/*" multiple />
-          <div className="upload-icon"><Icon name="picture" alt="" /></div>
-          <p className="upload-text">Nhấn để tải ảnh quán</p>
-          <p className="upload-subtext">JPG, PNG, HEIC • Tối đa 10MB / ảnh</p>
+          <input ref={fileInputRef} type="file" id="img-upload" hidden multiple
+            accept={ALLOWED_TYPES.join(',')} disabled={submitting} onChange={event => {
+              selectFiles(event.target.files);
+              event.target.value = '';
+            }} />
+          {previews.length ? (
+            <div className="location-upload-grid">
+              {previews.map((preview, index) => (
+                <figure key={`${preview.file.name}-${preview.file.lastModified}`}>
+                  <img src={preview.url} alt={`Ảnh địa điểm ${index + 1}`} />
+                  <button type="button" onClick={event => {
+                    event.stopPropagation();
+                    removeFile(index);
+                  }} aria-label={`Xóa ảnh ${index + 1}`}>✕</button>
+                </figure>
+              ))}
+              {previews.length < MAX_IMAGES && (
+                <div className="location-upload-more"><Icon name="plus" alt="" /> Thêm ảnh</div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="upload-icon"><Icon name="picture" alt="" /></div>
+              <p className="upload-text">Nhấn để chọn ảnh quán</p>
+              <p className="upload-subtext">JPG, PNG, WEBP, GIF • Tối đa 10MB / ảnh</p>
+            </>
+          )}
+          {submitting && selectedFiles.length > 0 && (
+            <div className="location-upload-progress" role="status">
+              <span style={{ width: `${uploadProgress}%` }} />
+              Đang tải ảnh {uploadProgress}%
+            </div>
+          )}
         </div>
 
         {/* Basic info */}
@@ -239,7 +317,7 @@ export default function AddLocationPage({ onBack }) {
 
         {error && <div style={{ color: '#c5221f', marginBottom: 12 }}>{error}</div>}
         <button type="submit" disabled={submitting} className="form-submit-btn" id="submit-location-btn">
-          <Icon name="plus" alt="" className="inline-icon submit-icon" /> Đăng quán ăn
+          <Icon name="plus" alt="" className="inline-icon submit-icon" /> {submitting ? 'Đang đăng...' : 'Đăng quán ăn'}
         </button>
       </form>
     </div>

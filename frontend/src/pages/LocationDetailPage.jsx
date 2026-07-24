@@ -51,10 +51,15 @@ export default function LocationDetailPage({ locationId, onBack }) {
 
       <div className="detail-hero">
         <div className="detail-hero-main" style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="picture" alt="" className="detail-placeholder-icon" />
-            <span style={{ color: 'white', fontWeight: 700, fontSize: '1.2rem' }}>{location.name}</span>
-          </div>
+          {location.imageUrls?.[0] ? (
+            <img src={location.imageUrls[0]} alt={location.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="picture" alt="" className="detail-placeholder-icon" />
+              <span style={{ color: 'white', fontWeight: 700, fontSize: '1.2rem' }}>{location.name}</span>
+            </div>
+          )}
         </div>
       </div>
 

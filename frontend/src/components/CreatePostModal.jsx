@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../styles/icon';
-import { api } from '../services/api';
+import { api, uploadImage } from '../services/api';
+
+const MAX_IMAGES = 4;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 const initialForm = {
   title: '',
   content: '',
   locationId: '',
-  imageUrl: '',
   tags: '',
   rating: 0,
 };
@@ -14,39 +17,77 @@ const initialForm = {
 export default function CreatePostModal({ currentUser, onClose, onCreated }) {
   const [form, setForm] = useState(initialForm);
   const [locations, setLocations] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
-  const [imageError, setImageError] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const previews = useMemo(
+    () => selectedFiles.map(file => ({ file, url: URL.createObjectURL(file) })),
+    [selectedFiles],
+  );
+
+  useEffect(() => () => previews.forEach(preview => URL.revokeObjectURL(preview.url)), [previews]);
 
   useEffect(() => {
     api.getLocations().then(setLocations).catch(() => setLocations([]));
-    const closeOnEscape = event => event.key === 'Escape' && onClose();
+    const closeOnEscape = event => event.key === 'Escape' && !submitting && onClose();
     window.addEventListener('keydown', closeOnEscape);
     document.body.classList.add('social-modal-open');
     return () => {
       window.removeEventListener('keydown', closeOnEscape);
       document.body.classList.remove('social-modal-open');
     };
-  }, [onClose]);
+  }, [onClose, submitting]);
 
   const update = event => {
     const { name, value } = event.target;
     setForm(previous => ({ ...previous, [name]: value }));
-    if (name === 'imageUrl') setImageError(false);
+  };
+
+  const selectFiles = files => {
+    const candidates = Array.from(files || []);
+    const invalid = candidates.find(file =>
+      !ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE);
+    if (invalid) {
+      setError('Chỉ hỗ trợ JPG, PNG, WEBP, GIF và tối đa 10MB mỗi ảnh');
+      return;
+    }
+    setSelectedFiles(previous => [...previous, ...candidates].slice(0, MAX_IMAGES));
+    setError('');
+  };
+
+  const removeFile = index => {
+    setSelectedFiles(previous => previous.filter((_, fileIndex) => fileIndex !== index));
+  };
+
+  const uploadFiles = async () => {
+    const uploaded = [];
+    for (let index = 0; index < selectedFiles.length; index += 1) {
+      const result = await uploadImage(selectedFiles[index], currentUser.id, progress => {
+        const overall = ((index + progress / 100) / selectedFiles.length) * 100;
+        setUploadProgress(Math.round(overall));
+      });
+      uploaded.push(result);
+    }
+    return uploaded;
   };
 
   const submit = async event => {
     event.preventDefault();
     setSubmitting(true);
+    setUploadProgress(0);
     setError('');
     try {
+      const uploaded = selectedFiles.length ? await uploadFiles() : [];
       const created = await api.createPost({
         userId: currentUser.id,
         locationId: form.locationId || null,
         title: form.title.trim(),
         content: form.content.trim() || null,
         rating: Number(form.rating) || null,
-        imageUrls: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
+        imageKeys: uploaded.map(image => image.objectKey),
         tags: form.tags.split(/[#,\s]+/).map(tag => tag.trim()).filter(Boolean),
       });
       onCreated(created);
@@ -59,10 +100,11 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
 
   return (
     <div className="create-post-overlay" role="presentation"
-      onMouseDown={event => event.target === event.currentTarget && onClose()}>
+      onMouseDown={event => event.target === event.currentTarget && !submitting && onClose()}>
       <section className="create-post-modal" role="dialog" aria-modal="true" aria-labelledby="create-post-title">
         <header className="create-post-header">
-          <button type="button" className="create-post-close" onClick={onClose} aria-label="Đóng">✕</button>
+          <button type="button" className="create-post-close" onClick={onClose}
+            disabled={submitting} aria-label="Đóng">✕</button>
           <h2 id="create-post-title">Tạo bài viết mới</h2>
           <button type="submit" form="create-post-form" className="create-post-submit"
             disabled={submitting || !form.title.trim()}>
@@ -71,14 +113,46 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
         </header>
 
         <form id="create-post-form" className="create-post-layout" onSubmit={submit}>
-          <div className="create-post-preview">
-            {form.imageUrl.trim() && !imageError ? (
-              <img src={form.imageUrl.trim()} alt="Xem trước bài viết" onError={() => setImageError(true)} />
+          <div className="create-post-preview"
+            onDragOver={event => event.preventDefault()}
+            onDrop={event => {
+              event.preventDefault();
+              selectFiles(event.dataTransfer.files);
+            }}>
+            <input ref={fileInputRef} type="file" hidden multiple
+              accept={ALLOWED_TYPES.join(',')} onChange={event => {
+                selectFiles(event.target.files);
+                event.target.value = '';
+              }} />
+            {previews.length ? (
+              <div className="create-post-preview-grid">
+                {previews.map((preview, index) => (
+                  <figure key={`${preview.file.name}-${preview.file.lastModified}`}>
+                    <img src={preview.url} alt={`Ảnh đã chọn ${index + 1}`} />
+                    <button type="button" onClick={() => removeFile(index)}
+                      disabled={submitting} aria-label={`Xóa ảnh ${index + 1}`}>✕</button>
+                  </figure>
+                ))}
+                {previews.length < MAX_IMAGES && (
+                  <button className="create-post-add-image" type="button"
+                    onClick={() => fileInputRef.current?.click()} disabled={submitting}>
+                    <Icon name="plus" alt="" />
+                    Thêm ảnh
+                  </button>
+                )}
+              </div>
             ) : (
-              <div className="create-post-empty-preview">
+              <button className="create-post-empty-preview" type="button"
+                onClick={() => fileInputRef.current?.click()} disabled={submitting}>
                 <Icon name="picture" alt="" />
-                <strong>Thêm ảnh món ngon của bạn</strong>
-                <span>Dán đường dẫn ảnh ở phần nội dung</span>
+                <strong>Chọn ảnh món ngon của bạn</strong>
+                <span>Kéo thả hoặc nhấn để chọn tối đa {MAX_IMAGES} ảnh</span>
+              </button>
+            )}
+            {submitting && selectedFiles.length > 0 && (
+              <div className="upload-progress" role="status" aria-live="polite">
+                <span style={{ width: `${uploadProgress}%` }} />
+                <strong>Đang tải ảnh {uploadProgress}%</strong>
               </div>
             )}
           </div>
@@ -98,19 +172,20 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
             <label className="create-post-field">
               <span>Tiêu đề</span>
               <input name="title" value={form.title} onChange={update} maxLength={255}
-                placeholder="Bạn muốn chia sẻ món gì?" required autoFocus />
+                placeholder="Bạn muốn chia sẻ món gì?" required autoFocus disabled={submitting} />
             </label>
 
             <label className="create-post-field">
               <span>Nội dung</span>
               <textarea name="content" value={form.content} onChange={update} maxLength={2000}
-                placeholder="Kể về trải nghiệm, hương vị và điều bạn yêu thích..." />
+                placeholder="Kể về trải nghiệm, hương vị và điều bạn yêu thích..."
+                disabled={submitting} />
               <small>{form.content.length}/2000</small>
             </label>
 
             <label className="create-post-field icon-field">
               <Icon name="marker" alt="" />
-              <select name="locationId" value={form.locationId} onChange={update}>
+              <select name="locationId" value={form.locationId} onChange={update} disabled={submitting}>
                 <option value="">Không gắn địa điểm</option>
                 {locations.map(location => (
                   <option key={location.id} value={location.id}>{location.name}</option>
@@ -118,19 +193,13 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
               </select>
             </label>
 
-            <label className="create-post-field icon-field">
-              <Icon name="link" alt="" />
-              <input name="imageUrl" type="url" value={form.imageUrl} onChange={update}
-                placeholder="https://... đường dẫn ảnh" />
-            </label>
-
             <label className="create-post-field">
               <span>Hashtag</span>
               <input name="tags" value={form.tags} onChange={update}
-                placeholder="#pho #hanoi #monngon" />
+                placeholder="#pho #hanoi #monngon" disabled={submitting} />
             </label>
 
-            <fieldset className="create-post-rating">
+            <fieldset className="create-post-rating" disabled={submitting}>
               <legend>Đánh giá</legend>
               <div>
                 {[1, 2, 3, 4, 5].map(star => (
