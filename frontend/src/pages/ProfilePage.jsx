@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api, getCurrentUser } from '../services/api';
+import UserProfileView from '../components/UserProfileView';
+import Icon from '../styles/icon';
 
-export default function ProfilePage({ initialMode = 'login' }) {
+export default function ProfilePage({ initialMode = 'login', profileUserId, onNavigateToDetail, onSettings }) {
   const [user, setUser] = useState(getCurrentUser());
   const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ userName: '', email: '', password: '', bio: '' });
@@ -9,6 +11,16 @@ export default function ProfilePage({ initialMode = 'login' }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => setMode(initialMode), [initialMode]);
+
+  useEffect(() => {
+    const refresh = () => setUser(getCurrentUser());
+    window.addEventListener('auth-changed', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('auth-changed', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
 
   const update = event => setForm(previous => ({ ...previous, [event.target.name]: event.target.value }));
 
@@ -35,28 +47,9 @@ export default function ProfilePage({ initialMode = 'login' }) {
     setError('');
   };
 
-  const logout = () => {
-    localStorage.removeItem('localfoodUser');
-    setUser(null);
-    window.dispatchEvent(new Event('auth-changed'));
-  };
-
-  if (user) return (
-    <section className="profile-page">
-      <div className="profile-hero-card">
-        <div className="profile-large-avatar">{user.userName?.[0]?.toUpperCase()}</div>
-        <div>
-          <span className="profile-eyebrow">Tài khoản LocalFood</span>
-          <h1>{user.userName}</h1>
-          <p>{user.email}</p>
-        </div>
-      </div>
-      <div className="profile-content-card">
-        <h2>Thông tin cá nhân</h2>
-        <p>{user.bio || 'Bạn chưa thêm phần giới thiệu.'}</p>
-        <button className="auth-secondary-action" onClick={logout}>Đăng xuất</button>
-      </div>
-    </section>
+  if (user || profileUserId) return (
+    <UserProfileView userId={profileUserId || user.id} viewer={user}
+      onNavigateToDetail={onNavigateToDetail} onSettings={onSettings} />
   );
 
   return (
@@ -70,9 +63,9 @@ export default function ProfilePage({ initialMode = 'login' }) {
             <p>Lưu địa điểm yêu thích, chia sẻ trải nghiệm và kết nối với cộng đồng đam mê ẩm thực.</p>
           </div>
           <div className="auth-proof">
-            <span>🍜 Quán ngon địa phương</span>
-            <span>📍 Bản đồ trực quan</span>
-            <span>💬 Review chân thực</span>
+            <span><Icon name="picture" alt="" className="auth-proof-icon" /> Quán ngon địa phương</span>
+            <span><Icon name="marker" alt="" className="auth-proof-icon" /> Bản đồ trực quan</span>
+            <span><Icon name="envelope" alt="" className="auth-proof-icon" /> Review chân thực</span>
           </div>
         </div>
 

@@ -91,7 +91,10 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
       </div>
 
       <header className="lf-topbar">
-        <span className="lf-topbar-brand">LocalFood 🍽️</span>
+        <span className="lf-topbar-brand">
+          LocalFood
+          <Icon name="picture" alt="" className="topbar-brand-icon" />
+        </span>
         <div className="lf-topbar-actions">
           <button className="lf-topbar-btn" onClick={onSearchOpen} aria-label="Tìm kiếm">
             <Icon name="search" alt="" className="topbar-icon" />

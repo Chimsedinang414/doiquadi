@@ -30,3 +30,16 @@ logging:
   level:
     root: INFO
     com.localfood: DEBUG
+
+app:
+  storage:
+    enabled: ${STORAGE_ENABLED:false}
+    endpoint: ${STORAGE_ENDPOINT:}
+    region: ${STORAGE_REGION:auto}
+    bucket: ${STORAGE_BUCKET:}
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:}
+    path-style-access: ${STORAGE_PATH_STYLE:true}
+    presign-seconds: ${STORAGE_PRESIGN_SECONDS:300}
+    max-file-size: ${STORAGE_MAX_FILE_SIZE:10485760}

@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from '../styles/icon';
 
 export default function StoryBar({ posts = [] }) {
   const locations = [...new Map(
@@ -10,12 +11,13 @@ export default function StoryBar({ posts = [] }) {
   return (
     <div className="lf-stories">
       {locations.map(post => (
-        <div key={post.locationId} className="story-item">
+        <button key={post.locationId} className="story-item" type="button"
+          onClick={() => document.getElementById(`post-${post.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
           <div className="story-ring">
-            <div className="story-avatar"><span style={{ fontSize: '1.8rem' }}>🍽️</span></div>
+            <div className="story-avatar"><Icon name="picture" alt="" className="story-picture-icon" /></div>
           </div>
           <span className="story-name">{post.restaurantName}</span>
-        </div>
+        </button>
       ))}
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
+import Icon from '../styles/icon';
 
 export default function AddLocationPage({ onBack }) {
   const [rating, setRating] = useState(0);
@@ -47,7 +48,9 @@ export default function AddLocationPage({ onBack }) {
   if (submitted) {
     return (
       <div className="lf-form-page" style={{ textAlign: 'center', paddingTop: 80 }}>
-        <div style={{ fontSize: '5rem', marginBottom: 20, animation: 'pulse 1s ease' }}>🎉</div>
+        <div className="form-success-icon">
+          <Icon name="plus" alt="" />
+        </div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 10 }}>Thêm thành công!</h2>
         <p style={{ color: 'var(--text-secondary)' }}>Quán ăn đang chờ kiểm duyệt. Cảm ơn bạn đã đóng góp!</p>
       </div>
@@ -64,7 +67,7 @@ export default function AddLocationPage({ onBack }) {
       </button>
 
       <div className="form-page-title">
-        <span>🍽️</span> Thêm quán ăn mới
+        <Icon name="picture" alt="" className="form-title-icon" /> Thêm quán ăn mới
       </div>
 
       <form className="lf-form" onSubmit={handleSubmit} id="add-location-form">
@@ -77,7 +80,7 @@ export default function AddLocationPage({ onBack }) {
           id="upload-area"
         >
           <input type="file" id="img-upload" hidden accept="image/*" multiple />
-          <div className="upload-icon">📷</div>
+          <div className="upload-icon"><Icon name="picture" alt="" /></div>
           <p className="upload-text">Nhấn để tải ảnh quán</p>
           <p className="upload-subtext">JPG, PNG, HEIC • Tối đa 10MB / ảnh</p>
         </div>
@@ -236,7 +239,7 @@ export default function AddLocationPage({ onBack }) {
 
         {error && <div style={{ color: '#c5221f', marginBottom: 12 }}>{error}</div>}
         <button type="submit" disabled={submitting} className="form-submit-btn" id="submit-location-btn">
-          🚀 Đăng quán ăn
+          <Icon name="plus" alt="" className="inline-icon submit-icon" /> Đăng quán ăn
         </button>
       </form>
     </div>

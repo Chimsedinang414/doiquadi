@@ -55,12 +55,26 @@ SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 CREATE TABLE post_images (
     id CHAR(36) PRIMARY KEY,
     post_id CHAR(36) NOT NULL,
-    image_url VARCHAR(500) NOT NULL,
+    storage_key VARCHAR(1024),
+    image_url VARCHAR(1000) NOT NULL,
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER before_insert_post_images
 BEFORE INSERT ON post_images
+FOR EACH ROW
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
+
+CREATE TABLE location_images (
+    id CHAR(36) PRIMARY KEY,
+    location_id CHAR(36) NOT NULL,
+    storage_key VARCHAR(1024),
+    image_url VARCHAR(1000) NOT NULL,
+    FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER before_insert_location_images
+BEFORE INSERT ON location_images
 FOR EACH ROW
 SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 

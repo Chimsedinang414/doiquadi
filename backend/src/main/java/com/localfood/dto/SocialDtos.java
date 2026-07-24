@@ -21,6 +21,7 @@ public final class SocialDtos {
             String content,
             @DecimalMin("0.0") @DecimalMax("5.0") Float rating,
             List<@Size(max = 500) String> imageUrls,
+            List<@Size(max = 1024) String> imageKeys,
             List<@Size(max = 100) String> tags) {
     }
 

@@ -14,11 +14,11 @@ import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
 
 @Entity
-@Table(name = "post_images")
+@Table(name = "location_images")
 @Getter
 @Setter
 @NoArgsConstructor
-public class PostImage {
+public class LocationImage {
     @Id
     @GeneratedValue
     @UuidGenerator
@@ -26,8 +26,8 @@ public class PostImage {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
 
     @Column(name = "storage_key", length = 1024)
     private String storageKey;

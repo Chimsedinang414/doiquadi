@@ -360,15 +360,11 @@
   color: white;
   font-weight: 700;
   font-size: 1rem;
-  cursor: pointer;
-  transition: transform 0.2s;
+  cursor: default;
   overflow: hidden;
   flex-shrink: 0;
 }
 
-.post-avatar:hover {
-  transform: scale(1.05);
-}
 
 .post-avatar img {
   width: 100%;
@@ -379,12 +375,9 @@
 .post-user-name {
   font-size: 0.9rem;
   font-weight: 600;
-  cursor: pointer;
+  cursor: default;
 }
 
-.post-user-name:hover {
-  text-decoration: underline;
-}
 
 .post-meta {
   display: flex;

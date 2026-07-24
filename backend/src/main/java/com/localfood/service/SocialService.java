@@ -61,6 +61,7 @@ public class SocialService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
+    private final StorageService storageService;
 
     public List<SocialDtos.PostResponse> getPosts() {
         return postRepository.findAllByOrderByCreatedAtDesc().stream().map(this::toPostResponse).toList();
@@ -119,6 +120,25 @@ public class SocialService {
                         postImageRepository.save(image);
                     });
         }
+        if (request.imageKeys() != null) {
+            List<String> imageKeys = request.imageKeys().stream()
+                    .filter(key -> key != null && !key.isBlank())
+                    .distinct()
+                    .toList();
+            if (imageKeys.size() > 10) {
+                throw new AppException("Mỗi bài viết chỉ được tải tối đa 10 ảnh");
+            }
+            imageKeys.forEach(key -> {
+                StorageService.StoredObject uploaded =
+                        storageService.requireUploadedImage(request.userId(), key);
+                PostImage image = new PostImage();
+                image.setPost(savedPost);
+                image.setStorageKey(uploaded.objectKey());
+                image.setImageUrl(uploaded.publicUrl());
+                postImageRepository.save(image);
+            });
+        }
+
 
         if (request.tags() != null) {
             request.tags().stream()

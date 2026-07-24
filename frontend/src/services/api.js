@@ -43,7 +43,6 @@ export function toPostView(post) {
     restaurantName: post.location?.name || post.title,
     address: post.location?.address || '',
     category: post.tags?.[0] || 'Ẩm thực',
-    emoji: '🍽️',
     rating: post.rating || 0,
     reviews: post.comments || 0,
     likes: post.likes || 0,

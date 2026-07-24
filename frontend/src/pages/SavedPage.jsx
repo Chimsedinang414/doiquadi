@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, getCurrentUser } from '../services/api';
+import Icon from '../styles/icon';
 
 export default function SavedPage({ onNavigateToDetail }) {
   const user = getCurrentUser();
@@ -19,7 +20,9 @@ export default function SavedPage({ onNavigateToDetail }) {
         {items.map(item => (
           <button key={item.location.id} className="explore-grid-item"
             onClick={() => onNavigateToDetail(item.location.id)}>
-            <div className="explore-img explore-placeholder">🍽️</div>
+            <div className="explore-img explore-placeholder">
+              <Icon name="picture" alt="" className="grid-placeholder-icon" />
+            </div>
             <div className="explore-overlay"><span>{item.location.name}</span></div>
           </button>
         ))}

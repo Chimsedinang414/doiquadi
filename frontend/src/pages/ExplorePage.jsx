@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import Icon from '../styles/icon';
 
 export default function ExplorePage({ onNavigateToDetail }) {
   const [locations, setLocations] = useState([]);
@@ -19,7 +20,7 @@ export default function ExplorePage({ onNavigateToDetail }) {
   return (
     <div className="lf-explore" id="explore-page">
       <div className="explore-search-bar">
-        <span>🔍</span>
+        <Icon name="search" alt="" className="search-field-icon" />
         <input
           type="text"
           placeholder="Tìm quán ăn hoặc địa chỉ..."
@@ -39,7 +40,7 @@ export default function ExplorePage({ onNavigateToDetail }) {
           >
             <div className="explore-img explore-placeholder"
               style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
-              <span style={{ fontSize: '3.5rem' }}>🍽️</span>
+              <Icon name="picture" alt="" className="grid-placeholder-icon" />
             </div>
             <div className="explore-overlay">
               <span>{location.name}</span>
