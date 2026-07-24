@@ -1,8 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Icon from '../styles/icon';
+import { getCurrentUser } from '../services/api';
 
+export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNavigate }) {
+  const [user, setUser] = useState(getCurrentUser());
+  const [menuOpen, setMenuOpen] = useState(false);
 
-export default function TopBar({ activePage, onNavigate, onSearchOpen }) {
+  useEffect(() => {
+    const refresh = () => setUser(getCurrentUser());
+    window.addEventListener('auth-changed', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('auth-changed', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    const closeOnOutsideClick = event => {
+      if (menuOpen && event.target instanceof Element && !event.target.closest('.auth-account-menu')) {
+        setMenuOpen(false);
+      }
+    };
+    const closeOnEscape = event => event.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [menuOpen]);
+
+  const logout = () => {
+    localStorage.removeItem('localfoodUser');
+    setUser(null);
+    setMenuOpen(false);
+    window.dispatchEvent(new Event('auth-changed'));
+  };
+
   const navItems = [
     { id: 'home', icon: 'home' },
     { id: 'explore', icon: 'search' },
@@ -11,49 +46,73 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen }) {
     { id: 'profile', icon: 'user' },
   ];
 
+  const AccountControl = ({ compact = false }) => (
+    <div className={'auth-account-menu' + (compact ? ' compact' : '')}>
+      <button
+        className={'auth-user-chip' + (compact ? ' compact' : '')}
+        type="button"
+        onClick={() => setMenuOpen(previous => !previous)}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        aria-label={'M\u1edf menu t\u00e0i kho\u1ea3n'}
+      >
+        <span className="auth-user-avatar">
+          {user.avatar ? <img src={user.avatar} alt="" /> : user.userName?.[0]?.toUpperCase()}
+        </span>
+        {!compact && <span>{user.userName}</span>}
+      </button>
+      {menuOpen && (
+        <div className="auth-account-popover" role="menu" aria-label={'T\u00f9y ch\u1ecdn t\u00e0i kho\u1ea3n'}>
+          <button className="account-settings-button" type="button" role="menuitem"
+            onClick={() => { setMenuOpen(false); onNavigate('settings'); }}
+            aria-label={'C\u00e0i \u0111\u1eb7t'} title={'C\u00e0i \u0111\u1eb7t'}>
+            <Icon name="settings" alt="" />
+          </button>
+          <button className="account-logout-button" type="button" role="menuitem" onClick={logout}>
+            <Icon name="exit" alt="" />
+            <span>{'\u0110\u0103ng xu\u1ea5t'}</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      {/* Mobile top header */}
-      <header className="lf-topbar" role="banner">
+      <div className="lf-desktop-auth" aria-label="Tài khoản">
+        {user ? (
+          <AccountControl />
+        ) : (
+          <>
+            <button className="auth-login-button" onClick={() => onAuthNavigate('login')}>Đăng nhập</button>
+            <button className="auth-register-button" onClick={() => onAuthNavigate('register')}>Đăng ký</button>
+          </>
+        )}
+      </div>
+
+      <header className="lf-topbar">
         <span className="lf-topbar-brand">LocalFood 🍽️</span>
         <div className="lf-topbar-actions">
-          <button
-            className="lf-topbar-btn"
-            onClick={onSearchOpen}
-            aria-label="Tìm kiếm"
-            id="topbar-search-btn"
-          >
-            <Icon name="search" alt="Tìm kiếm" className="topbar-icon" />
+          <button className="lf-topbar-btn" onClick={onSearchOpen} aria-label="Tìm kiếm">
+            <Icon name="search" alt="" className="topbar-icon" />
           </button>
-          <button
-            className="lf-topbar-btn"
-            aria-label="Thông báo"
-            id="topbar-notif-btn"
-          >
-            <Icon name="envelope" alt="Thông báo" className="topbar-icon" />
-          </button>
-          <button
-            className="lf-topbar-btn"
-            aria-label="Tin nhắn"
-            id="topbar-msg-btn"
-          >
-            <Icon name="envelope" alt="Tin nhắn" className="topbar-icon" />
-          </button>
+          {user ? (
+            <AccountControl compact />
+          ) : (
+            <button className="auth-register-button compact" onClick={() => onAuthNavigate('login')}>
+              Đăng nhập
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Mobile bottom nav */}
-      <nav className="lf-bottom-nav" aria-label="Navigation mobile">
+      <nav className="lf-bottom-nav" aria-label="Điều hướng mobile">
         <div className="lf-bottom-nav-inner">
           {navItems.map(item => (
-            <button
-              key={item.id}
-              className={`bottom-nav-btn ${activePage === item.id ? 'active' : ''}`}
-              onClick={() => onNavigate(item.id)}
-              aria-label={item.id}
-              id={`mobile-nav-${item.id}`}
-            >
-              <Icon name={item.icon} alt={item.id} className="bottom-nav-icon" />
+            <button key={item.id}
+              className={'bottom-nav-btn ' + (activePage === item.id ? 'active' : '')}
+              onClick={() => onNavigate(item.id)} aria-label={item.id}>
+              <Icon name={item.icon} alt="" className="bottom-nav-icon" />
             </button>
           ))}
         </div>

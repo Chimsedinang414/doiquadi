@@ -18,6 +18,7 @@ public class Location {
     private String id;
     @NotBlank @Column(nullable = false)
     private String name;
+    @Column(length = 500)
     private String address;
     private Double latitude;
     private Double longitude;
@@ -25,7 +26,8 @@ public class Location {
     private LocalTime openTime;
     @Column(name = "close_time")
     private LocalTime closeTime;
+    @Column(length = 20)
     private String phone;
-    @Column(name = "avg_price")
+    @Column(name = "avg_price", precision = 10, scale = 2)
     private BigDecimal averagePrice;
 }

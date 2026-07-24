@@ -10,24 +10,31 @@ import com.localfood.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(request.getEmail().trim().toLowerCase())) {
             throw new AppException("Email đã được sử dụng!");
+        }
+
+        if (userRepository.existsByUserName(request.getUserName().trim())) {
+            throw new AppException("Tên người dùng đã được sử dụng!");
         }
 
         String hashedPassword = BCrypt.hashpw(request.getPassword(), BCrypt.gensalt());
 
         User user = new User();
-        user.setUserName(request.getUserName());
-        user.setEmail(request.getEmail());
+        user.setUserName(request.getUserName().trim());
+        user.setEmail(request.getEmail().trim().toLowerCase());
         user.setPassword(hashedPassword);
         user.setBio(request.getBio());
 
@@ -41,7 +48,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new AppException("Email hoặc mật khẩu không chính xác!"));
 
         if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {

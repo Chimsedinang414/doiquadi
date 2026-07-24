@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { api } from '../services/api';
 
 export default function AddLocationPage({ onBack }) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: '', category: '', address: '', phone: '',
     priceMin: '', priceMax: '', description: '',
@@ -16,12 +19,29 @@ export default function AddLocationPage({ onBack }) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      onBack && onBack();
-    }, 2000);
+    setSubmitting(true);
+    setError('');
+    try {
+      const prices = [form.priceMin, form.priceMax].filter(Boolean).map(Number);
+      await api.createLocation({
+        name: form.name,
+        address: form.address || null,
+        phone: form.phone || null,
+        latitude: form.lat ? Number(form.lat) : null,
+        longitude: form.lng ? Number(form.lng) : null,
+        openTime: null,
+        closeTime: null,
+        averagePrice: prices.length ? prices.reduce((sum, value) => sum + value, 0) / prices.length : null,
+      });
+      setSubmitted(true);
+      setTimeout(() => onBack?.(), 1200);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -214,7 +234,8 @@ export default function AddLocationPage({ onBack }) {
           </div>
         </div>
 
-        <button type="submit" className="form-submit-btn" id="submit-location-btn">
+        {error && <div style={{ color: '#c5221f', marginBottom: 12 }}>{error}</div>}
+        <button type="submit" disabled={submitting} className="form-submit-btn" id="submit-location-btn">
           🚀 Đăng quán ăn
         </button>
       </form>
