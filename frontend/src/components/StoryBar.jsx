@@ -1,31 +1,20 @@
-import React, { useState } from 'react';
-import { mockStories } from '../services/mockData';
+import React from 'react';
 
-export default function StoryBar() {
-  const [stories, setStories] = useState(mockStories);
+export default function StoryBar({ posts = [] }) {
+  const locations = [...new Map(
+    posts.filter(post => post.locationId).map(post => [post.locationId, post])
+  ).values()].slice(0, 8);
 
-  const handleStoryClick = (id) => {
-    setStories(prev => prev.map(s => s.id === id ? { ...s, seen: true } : s));
-  };
+  if (locations.length === 0) return null;
 
   return (
     <div className="lf-stories">
-      {/* Add Story */}
-      <div className="story-item" style={{ cursor: 'pointer' }}>
-        <div style={{ position: 'relative', width: 66, height: 66 }}>
-          <div className="story-add-btn">＋</div>
-        </div>
-        <span className="story-name">Của bạn</span>
-      </div>
-
-      {stories.map((story) => (
-        <div key={story.id} className="story-item" onClick={() => handleStoryClick(story.id)}>
-          <div className={`story-ring ${story.seen ? 'seen' : ''}`}>
-            <div className="story-avatar">
-              <span style={{ fontSize: '1.8rem' }}>{story.emoji}</span>
-            </div>
+      {locations.map(post => (
+        <div key={post.locationId} className="story-item">
+          <div className="story-ring">
+            <div className="story-avatar"><span style={{ fontSize: '1.8rem' }}>🍽️</span></div>
           </div>
-          <span className="story-name">{story.name}</span>
+          <span className="story-name">{post.restaurantName}</span>
         </div>
       ))}
     </div>

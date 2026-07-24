@@ -13,7 +13,7 @@ CREATE TABLE users (
 CREATE TRIGGER before_insert_users
 BEFORE INSERT ON users
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 
 
 -- 2. Location
@@ -32,7 +32,7 @@ CREATE TABLE locations (
 CREATE TRIGGER before_insert_locations
 BEFORE INSERT ON locations
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 
 -- 3. Post
 CREATE TABLE posts (
@@ -49,7 +49,7 @@ CREATE TABLE posts (
 CREATE TRIGGER before_insert_posts
 BEFORE INSERT ON posts
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 
 -- 4. PostImage
 CREATE TABLE post_images (
@@ -62,7 +62,7 @@ CREATE TABLE post_images (
 CREATE TRIGGER before_insert_post_images
 BEFORE INSERT ON post_images
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 
 -- 5. Food
 CREATE TABLE foods (
@@ -75,7 +75,7 @@ CREATE TABLE foods (
 CREATE TRIGGER before_insert_foods
 BEFORE INSERT ON foods
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 
 
 -- 6. LocationFood
@@ -117,7 +117,7 @@ CREATE TABLE comments (
 CREATE TRIGGER before_insert_comments
 BEFORE INSERT ON comments
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
 
 -- 10. Like
 CREATE TABLE likes (
@@ -188,4 +188,4 @@ CREATE TABLE notifications (
 CREATE TRIGGER before_insert_notifications
 BEFORE INSERT ON notifications
 FOR EACH ROW
-SET NEW.id = UUID();
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());

@@ -5,10 +5,11 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/doiquadi}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:142857}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: false
