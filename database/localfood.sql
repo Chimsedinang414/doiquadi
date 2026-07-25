@@ -2,9 +2,12 @@
 -- 1. User
 CREATE TABLE users (
     id CHAR(36) PRIMARY KEY,
+    auth_subject CHAR(36) NOT NULL UNIQUE,
     username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(254) NOT NULL UNIQUE,
+    password_hash VARCHAR(255),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    credentials_version INT NOT NULL DEFAULT 0,
     avatar_url VARCHAR(500),
     bio TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -13,7 +16,37 @@ CREATE TABLE users (
 CREATE TRIGGER before_insert_users
 BEFORE INSERT ON users
 FOR EACH ROW
-SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID());
+SET NEW.id = COALESCE(NULLIF(NEW.id, ''), UUID()),
+    NEW.auth_subject = COALESCE(NULLIF(NEW.auth_subject, ''), UUID());
+
+CREATE TABLE user_roles (
+    user_id CHAR(36) NOT NULL,
+    role VARCHAR(32) NOT NULL,
+    PRIMARY KEY (user_id, role),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE oauth_accounts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    provider VARCHAR(32) NOT NULL,
+    provider_subject VARCHAR(255) NOT NULL,
+    email_at_provider VARCHAR(254),
+    user_id CHAR(36) NOT NULL,
+    linked_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT uk_oauth_provider_subject UNIQUE (provider, provider_subject),
+    CONSTRAINT uk_oauth_user_provider UNIQUE (user_id, provider),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE oauth_login_codes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code_hash CHAR(64) NOT NULL UNIQUE,
+    user_id CHAR(36) NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    consumed_at DATETIME(6),
+    INDEX idx_oauth_login_code_expiry (expires_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
 
 -- 2. Location

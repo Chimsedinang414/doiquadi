@@ -17,7 +17,7 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải từ 6 ký tự trở lên")
+    @Size(min = 12, max = 72, message = "Password must contain 12 to 72 characters")
     private String password;
 
     @Size(max = 65535)
