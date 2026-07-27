@@ -27,7 +27,7 @@ export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
   return (
     <nav className="lf-sidebar" aria-label="Điều hướng chính">
       <div className="lf-logo">
-        <div className="lf-logo-icon"><Icon name="home" alt="LocalFood" className="lf-logo-icon-svg" /></div>
+        <div className="lf-logo-icon"><Icon name="localfood" alt="LocalFood" className="lf-logo-icon-svg lf-app-logo" /></div>
         <span className="lf-logo-text">LocalFood</span>
       </div>
       <div className="lf-nav">

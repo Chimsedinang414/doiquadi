@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Icon from '../styles/icon';
-import { getCurrentUser } from '../services/api';
+import { clearAuthSession, getCurrentUser } from '../services/api';
 
 export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNavigate }) {
   const [user, setUser] = useState(getCurrentUser());
@@ -32,10 +32,9 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
   }, [menuOpen]);
 
   const logout = () => {
-    localStorage.removeItem('localfoodUser');
+    clearAuthSession();
     setUser(null);
     setMenuOpen(false);
-    window.dispatchEvent(new Event('auth-changed'));
   };
 
   const navItems = [
@@ -92,8 +91,8 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
 
       <header className="lf-topbar">
         <span className="lf-topbar-brand">
+          <Icon name="localfood" alt="" className="topbar-brand-icon lf-app-logo" />
           LocalFood
-          <Icon name="picture" alt="" className="topbar-brand-icon" />
         </span>
         <div className="lf-topbar-actions">
           <button className="lf-topbar-btn" onClick={onSearchOpen} aria-label="Tìm kiếm">

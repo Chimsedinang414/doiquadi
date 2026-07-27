@@ -1,9 +1,94 @@
 import axios from 'axios';
 
-const client = axios.create({ baseURL: '/api', timeout: 10000 });
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const USER_KEY = 'localfoodUser';
+const REFRESH_TOKEN_KEY = 'localfoodRefreshToken';
 
-client.interceptors.response.use(response => response, error => {
-  const message = error.response?.data?.error
+let accessToken = null;
+let refreshPromise = null;
+
+const client = axios.create({ baseURL: API_BASE_URL, timeout: 10000 });
+
+function readSessionValue(key) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthSession(auth) {
+  if (!auth?.accessToken || !auth?.refreshToken || !auth?.user) {
+    throw new Error('Phản hồi đăng nhập không hợp lệ');
+  }
+  accessToken = auth.accessToken;
+  sessionStorage.setItem(REFRESH_TOKEN_KEY, auth.refreshToken);
+  sessionStorage.setItem(USER_KEY, JSON.stringify(auth.user));
+  localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event('auth-changed'));
+  return auth.user;
+}
+
+export function clearAuthSession() {
+  accessToken = null;
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+  localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event('auth-changed'));
+}
+
+async function refreshAccessToken() {
+  const refreshToken = readSessionValue(REFRESH_TOKEN_KEY);
+  if (!refreshToken) throw new Error('Phiên đăng nhập đã hết hạn');
+  if (!refreshPromise) {
+    refreshPromise = axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { timeout: 10000 })
+      .then(response => {
+        setAuthSession(response.data);
+        return response.data.accessToken;
+      })
+      .catch(error => {
+        clearAuthSession();
+        throw error;
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+client.interceptors.request.use(async config => {
+  const isAuthEndpoint = String(config.url || '').startsWith('/auth/');
+  if (!isAuthEndpoint && !accessToken && readSessionValue(REFRESH_TOKEN_KEY)) {
+    try {
+      await refreshAccessToken();
+    } catch {
+      // Continue anonymously; protected endpoints will return a normalized 401.
+    }
+  }
+  if (!isAuthEndpoint && accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+client.interceptors.response.use(response => response, async error => {
+  const original = error.config;
+  const canRetry = error.response?.status === 401
+    && original
+    && !original.__authRetry
+    && !String(original.url || '').startsWith('/auth/')
+    && readSessionValue(REFRESH_TOKEN_KEY);
+  if (canRetry) {
+    original.__authRetry = true;
+    try {
+      const token = await refreshAccessToken();
+      original.headers.Authorization = `Bearer ${token}`;
+      return client(original);
+    } catch {
+      // Return the normalized error after clearing the invalid session.
+    }
+  }
+  const message = error.response?.data?.message
+    || error.response?.data?.error
     || Object.values(error.response?.data || {})[0]
     || error.message
     || 'Không thể kết nối máy chủ';
@@ -29,7 +114,12 @@ export const api = {
   markNotificationRead: (id, userId) => client.patch('/notifications/' + id + '/read?userId=' + encodeURIComponent(userId)).then(response => response.data),
   login: data => client.post('/auth/login', data).then(response => response.data),
   register: data => client.post('/auth/register', data).then(response => response.data),
+  exchangeOAuthCode: code => client.post('/auth/oauth2/exchange', { code }).then(response => response.data),
 };
+
+export function getOAuthAuthorizationUrl(provider) {
+  return `${API_BASE_URL}/oauth2/authorization/${encodeURIComponent(provider)}`;
+}
 
 export async function uploadImage(file, userId, onProgress) {
   const presigned = await api.presignUpload({
@@ -49,15 +139,12 @@ export async function uploadImage(file, userId, onProgress) {
     },
   });
 
-  return api.completeUpload({
-    userId,
-    objectKey: presigned.objectKey,
-  });
+  return api.completeUpload({ userId, objectKey: presigned.objectKey });
 }
 
 export function getCurrentUser() {
   try {
-    return JSON.parse(localStorage.getItem('localfoodUser')) || null;
+    return JSON.parse(readSessionValue(USER_KEY)) || null;
   } catch {
     return null;
   }

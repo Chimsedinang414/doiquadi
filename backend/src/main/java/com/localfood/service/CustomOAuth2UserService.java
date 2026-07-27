@@ -29,9 +29,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String name = stringValue(attributes.get("name"));
         String avatar = facebookPicture(attributes);
 
-        // Facebook only returns the email field after its own account checks. Auto-linking
-        // is still governed by the explicit OAUTH2_AUTO_LINK_VERIFIED_EMAIL policy.
-        var localUser = accountLinkService.resolve(provider, subject, email, email != null, name, avatar);
+        // Facebook has no OIDC email_verified claim, so an existing account is never
+        // auto-linked solely from this payload.
+        var localUser = accountLinkService.resolve(provider, subject, email, false, name, avatar);
         return new LocalOAuth2User(providerUser, localUser);
     }
 

@@ -55,7 +55,7 @@ logging:
 
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   jwt:
     # Base64-encoded random value containing at least 32 bytes.
     secret: ${JWT_SECRET}
@@ -64,7 +64,7 @@ app:
     access-token-ttl: ${JWT_ACCESS_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
   oauth2:
-    frontend-redirect-uri: ${OAUTH2_FRONTEND_REDIRECT_URI:http://localhost:5173/oauth2/callback}
+    frontend-redirect-uri: ${OAUTH2_FRONTEND_REDIRECT_URI:http://localhost:3000/oauth2/callback}
     auto-link-verified-email: ${OAUTH2_AUTO_LINK_VERIFIED_EMAIL:false}
     authorization-cookie-secure: ${OAUTH2_COOKIE_SECURE:true}
     authorization-cookie-ttl: ${OAUTH2_COOKIE_TTL:PT5M}

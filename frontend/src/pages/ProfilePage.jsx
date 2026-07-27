@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, getCurrentUser } from '../services/api';
+import { api, getCurrentUser, getOAuthAuthorizationUrl, setAuthSession } from '../services/api';
 import UserProfileView from '../components/UserProfileView';
 import Icon from '../styles/icon';
 
@@ -32,9 +32,7 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
       const result = mode === 'register'
         ? await api.register(form)
         : await api.login({ email: form.email, password: form.password });
-      localStorage.setItem('localfoodUser', JSON.stringify(result.user));
-      setUser(result.user);
-      window.dispatchEvent(new Event('auth-changed'));
+      setUser(setAuthSession(result));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,6 +45,10 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
     setError('');
   };
 
+  const startOAuth = provider => {
+    window.location.assign(getOAuthAuthorizationUrl(provider));
+  };
+
   if (user || profileUserId) return (
     <UserProfileView userId={profileUserId || user.id} viewer={user}
       onNavigateToDetail={onNavigateToDetail} onSettings={onSettings} />
@@ -56,7 +58,7 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
     <section className="auth-page">
       <div className="auth-shell">
         <div className="auth-visual-panel">
-          <div className="auth-brand-mark">LF</div>
+          <div className="auth-brand-mark"><Icon name="localfood" alt="LocalFood" className="auth-app-logo" /></div>
           <div>
             <span className="auth-kicker">LOCALFOOD COMMUNITY</span>
             <h1>Khám phá hương vị<br />ngay quanh bạn.</h1>
@@ -71,7 +73,7 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
 
         <div className="auth-form-panel">
           <div className="auth-form-heading">
-            <span className="auth-mobile-brand">LocalFood</span>
+            <span className="auth-mobile-brand"><Icon name="localfood" alt="" className="auth-mobile-logo" />LocalFood</span>
             <h2>{mode === 'register' ? 'Tạo tài khoản' : 'Chào mừng trở lại'}</h2>
             <p>{mode === 'register'
               ? 'Tham gia cộng đồng ẩm thực chỉ trong vài giây.'
@@ -86,6 +88,23 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
               Đăng ký
             </button>
           </div>
+
+          <div className="auth-social-login" aria-label="Đăng nhập bằng mạng xã hội">
+            <button type="button" className="auth-social-button google" onClick={() => startOAuth('google')}>
+              <span className="auth-provider-mark"><Icon name="google" alt="" /></span>
+              <span>Tiếp tục với Google</span>
+            </button>
+            <button type="button" className="auth-social-button facebook" onClick={() => startOAuth('facebook')}>
+              <span className="auth-provider-mark"><Icon name="facebook" alt="" /></span>
+              <span>Tiếp tục với Facebook</span>
+            </button>
+            <button type="button" className="auth-social-button apple" onClick={() => startOAuth('apple')}>
+              <span className="auth-provider-mark"><Icon name="apple" alt="" /></span>
+              <span>Tiếp tục với Apple</span>
+            </button>
+          </div>
+
+          <div className="auth-divider"><span>hoặc dùng email</span></div>
 
           <form className="auth-form" onSubmit={submit}>
             {error && <div className="auth-error" role="alert">{error}</div>}
@@ -107,8 +126,8 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
             <label className="auth-field">
               <span>Mật khẩu</span>
               <input name="password" type="password" required
-                minLength={mode === 'register' ? 6 : undefined}
-                placeholder="Tối thiểu 6 ký tự" value={form.password}
+                minLength={mode === 'register' ? 12 : undefined} maxLength={72}
+                placeholder={mode === 'register' ? 'Tối thiểu 12 ký tự' : 'Nhập mật khẩu'} value={form.password}
                 onChange={update} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
             </label>
 

@@ -7,7 +7,6 @@ import com.localfood.dto.RegisterRequest;
 import com.localfood.dto.UserResponse;
 import com.localfood.exception.ApiException;
 import com.localfood.model.OAuthLoginCode;
-import com.localfood.model.Role;
 import com.localfood.model.User;
 import com.localfood.repository.OAuthLoginCodeRepository;
 import com.localfood.repository.UserRepository;
@@ -27,7 +26,6 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Locale;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -64,7 +62,6 @@ public class AuthenticationService {
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .bio(request.getBio())
-                .roles(Set.of(Role.USER))
                 .enabled(true)
                 .build();
         try {
@@ -80,9 +77,12 @@ public class AuthenticationService {
         String email = normalizeEmail(request.getEmail());
         User user = userRepository.findByEmail(email).orElse(null);
         String storedHash = user != null && user.getPassword() != null ? user.getPassword() : dummyPasswordHash;
-        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), storedHash);
+        boolean invalidBcryptLength = request.getPassword().getBytes(StandardCharsets.UTF_8).length > 72;
+        String passwordToCheck = invalidBcryptLength ? "invalid-password" : request.getPassword();
+        boolean passwordMatches = passwordEncoder.matches(passwordToCheck, storedHash);
 
-        if (user == null || user.getPassword() == null || !passwordMatches || !user.isEnabled()) {
+        if (invalidBcryptLength || user == null || user.getPassword() == null
+                || !passwordMatches || !user.isEnabled()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Email or password is incorrect");
         }
         return issueTokens(user, "Login successful");

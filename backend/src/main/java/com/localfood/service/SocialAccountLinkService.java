@@ -3,7 +3,6 @@ package com.localfood.service;
 import com.localfood.config.OAuth2Properties;
 import com.localfood.model.AuthProvider;
 import com.localfood.model.OAuthAccount;
-import com.localfood.model.Role;
 import com.localfood.model.User;
 import com.localfood.repository.OAuthAccountRepository;
 import com.localfood.repository.UserRepository;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +52,9 @@ public class SocialAccountLinkService {
         User user = userRepository.findByEmailForUpdate(email).orElse(null);
 
         if (user != null) {
+            if (!user.isEnabled()) {
+                throw oauthError("ACCOUNT_DISABLED", "This account is disabled");
+            }
             if (!properties.isAutoLinkVerifiedEmail() || !emailVerified) {
                 throw oauthError(
                         "ACCOUNT_LINKING_REQUIRED",
@@ -69,7 +70,6 @@ public class SocialAccountLinkService {
                     .email(email)
                     .avatar(avatar)
                     .password(null)
-                    .roles(Set.of(Role.USER))
                     .enabled(true)
                     .build();
             try {
@@ -93,7 +93,9 @@ public class SocialAccountLinkService {
     }
 
     private String uniqueUserName(String displayName, String email, String subject) {
-        String source = displayName == null || displayName.isBlank() ? email.substring(0, email.indexOf('@')) : displayName;
+        int at = email.indexOf('@');
+        String emailName = at > 0 ? email.substring(0, at) : "user";
+        String source = displayName == null || displayName.isBlank() ? emailName : displayName;
         String base = source.toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9._-]", "-")
                 .replaceAll("-+", "-")

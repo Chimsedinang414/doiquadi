@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './styles/index.css';
 import './styles/App.css';
 import './styles/Profile.css';
@@ -16,10 +16,14 @@ import SavedPage from './pages/SavedPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import { api, getCurrentUser } from './services/api';
 
 export default function App() {
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState(() => window.location.pathname === '/oauth2/callback'
+    ? 'oauth-callback'
+    : getCurrentUser() ? 'home' : 'profile');
+  const [authUser, setAuthUser] = useState(getCurrentUser());
   const [detailId, setDetailId] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -28,7 +32,28 @@ export default function App() {
   const [authMode, setAuthMode] = useState('login');
 
   useEffect(() => {
+    if (!authUser) {
+      setLocations([]);
+      return;
+    }
     api.getLocations().then(setLocations).catch(() => setLocations([]));
+  }, [authUser]);
+
+  useEffect(() => {
+    const refreshAuth = () => {
+      const nextUser = getCurrentUser();
+      setAuthUser(nextUser);
+      if (!nextUser) {
+        setAuthMode('login');
+        setPage('profile');
+      }
+    };
+    window.addEventListener('auth-changed', refreshAuth);
+    window.addEventListener('storage', refreshAuth);
+    return () => {
+      window.removeEventListener('auth-changed', refreshAuth);
+      window.removeEventListener('storage', refreshAuth);
+    };
   }, []);
 
   useEffect(() => {
@@ -53,6 +78,10 @@ export default function App() {
   };
 
   const navigate = nextPage => {
+    if (!getCurrentUser() && ['add', 'saved', 'notifications', 'settings'].includes(nextPage)) {
+      openAuth('login');
+      return;
+    }
     if (nextPage === 'profile') {
       openProfile();
       return;
@@ -86,9 +115,30 @@ export default function App() {
         onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')} />;
       case 'settings': return <SettingsPage onProfileOpen={openProfile}
         onAuthNavigate={openAuth} />;
+      case 'oauth-callback': return null;
       default: return <HomePage onProfileOpen={openProfile} onAuthNavigate={openAuth} />;
     }
   };
+
+  const completeOAuth = useCallback(() => setPage('home'), []);
+  const retryOAuth = useCallback(() => {
+    window.history.replaceState({}, document.title, '/');
+    setAuthMode('login');
+    setPage('profile');
+  }, []);
+
+  if (page === 'oauth-callback') {
+    return <OAuthCallbackPage onComplete={completeOAuth} onRetry={retryOAuth} />;
+  }
+
+  if (!authUser) {
+    return (
+      <div className="auth-gate-app">
+        <ProfilePage initialMode={authMode} profileUserId={null}
+          onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')} />
+      </div>
+    );
+  }
 
   return (
     <div className="lf-app">

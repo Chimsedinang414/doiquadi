@@ -40,7 +40,7 @@ CREATE TABLE oauth_accounts (
 
 CREATE TABLE oauth_login_codes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    code_hash CHAR(64) NOT NULL UNIQUE,
+    code_hash VARCHAR(64) NOT NULL UNIQUE,
     user_id CHAR(36) NOT NULL,
     expires_at DATETIME(6) NOT NULL,
     consumed_at DATETIME(6),
