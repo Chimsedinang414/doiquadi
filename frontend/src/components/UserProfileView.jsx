@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from '../styles/icon';
 import { api, toPostView } from '../services/api';
 
@@ -27,8 +27,19 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [followPending, setFollowPending] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    phoneNumber: '',
+    address: '',
+    dateOfBirth: '',
+    bio: '',
+    avatar: '',
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState('');
 
-  const loadProfile = () => {
+  const loadProfile = useCallback(() => {
     if (!userId) return;
     setLoading(true);
     setError('');
@@ -36,9 +47,11 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
       .then(setProfile)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  };
+  }, [userId, viewer?.id]);
 
-  useEffect(loadProfile, [userId, viewer?.id]);
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const posts = useMemo(() => (profile?.posts || []).map(toPostView), [profile]);
   const isOwnProfile = Boolean(viewer?.id && viewer.id === profile?.id);
@@ -85,18 +98,6 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
   const formattedDob = profile.dateOfBirth
     ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(profile.dateOfBirth))
     : null;
-
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({
-    fullName: '',
-    phoneNumber: '',
-    address: '',
-    dateOfBirth: '',
-    bio: '',
-    avatar: '',
-  });
-  const [editSubmitting, setEditSubmitting] = useState(false);
-  const [editError, setEditError] = useState('');
 
   const openEditModal = () => {
     setEditForm({

@@ -20,6 +20,7 @@ spring:
       schema-locations:
         - classpath:db/schema/oauth-link-intents.sql
         - classpath:db/schema/password-reset-tokens.sql
+        - classpath:db/schema/admin-audit-logs.sql
 
   mail:
     host: ${MAIL_HOST:localhost}

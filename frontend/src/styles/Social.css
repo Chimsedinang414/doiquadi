@@ -249,3 +249,35 @@
   .create-post-overlay,
   .create-post-modal { animation: none; }
 }
+
+/* Feed and composer surfaces in user dark theme */
+:root[data-theme='dark'] .home-compose-prompt,
+:root[data-theme='dark'] .feed-state,
+:root[data-theme='dark'] .create-post-modal {
+  color: var(--text-primary);
+  background: var(--bg-white);
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .create-post-preview,
+:root[data-theme='dark'] .create-post-preview-grid figure,
+:root[data-theme='dark'] .create-post-add-image {
+  background: var(--border-light);
+}
+
+:root[data-theme='dark'] .home-feed-error,
+:root[data-theme='dark'] .create-post-error,
+:root[data-theme='dark'] .suggestion-error {
+  color: #ffb4b8;
+  background: rgba(194, 44, 56, .16);
+}
+
+:root[data-theme='dark'] .post-share-status {
+  color: #9bd3ff;
+  background: rgba(52, 140, 210, .16);
+}
+
+:root[data-theme='dark'] .feed-loader {
+  border-color: var(--border-color);
+  border-top-color: #ef4f82;
+}

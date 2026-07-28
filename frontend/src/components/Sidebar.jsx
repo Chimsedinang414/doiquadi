@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import Icon from '../styles/icon';
 import { getCurrentUser } from '../services/api';
 
@@ -22,7 +23,12 @@ export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
     { id: 'add', icon: 'plus', label: 'Thêm quán' },
     { id: 'saved', icon: 'bookmark', label: 'Đã lưu' },
     { id: 'notifications', icon: 'envelope', label: 'Thông báo' },
+    { id: 'chat', icon: 'chat', label: 'Chat' },
   ];
+
+  const visibleNavItems = user?.roles?.includes('ADMIN')
+    ? [...navItems, { id: 'admin', icon: 'settings', label: 'Quản trị' }]
+    : navItems;
 
   return (
     <nav className="lf-sidebar" aria-label="Điều hướng chính">
@@ -31,11 +37,15 @@ export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
         <span className="lf-logo-text">LocalFood</span>
       </div>
       <div className="lf-nav">
-        {navItems.map(item => (
+        {visibleNavItems.map(item => (
           <button key={item.id}
             className={'lf-nav-item ' + (activePage === item.id ? 'active' : '')}
             onClick={() => onNavigate(item.id)}>
-            <span className="lf-nav-icon"><Icon name={item.icon} alt="" className="nav-item-icon" /></span>
+            <span className="lf-nav-icon">
+              {item.icon === 'chat'
+                ? <MessageCircle className="nav-item-lucide-icon" aria-hidden="true" />
+                : <Icon name={item.icon} alt="" className="nav-item-icon" />}
+            </span>
             <span className="lf-nav-label">{item.label}</span>
           </button>
         ))}

@@ -7,7 +7,7 @@ const REFRESH_TOKEN_KEY = 'localfoodRefreshToken';
 let accessToken = null;
 let refreshPromise = null;
 
-const client = axios.create({
+export const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   // Required when the frontend and API use different origins: the short-lived

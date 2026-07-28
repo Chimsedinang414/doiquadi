@@ -167,6 +167,7 @@ public class AuthenticationService {
                 .dateOfBirth(user.getDateOfBirth())
                 .bio(user.getBio())
                 .createdAt(user.getCreatedAt())
+                .roles(user.getRoles().stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()))
                 .build();
     }
 }

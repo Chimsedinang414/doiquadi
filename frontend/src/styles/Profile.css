@@ -406,6 +406,90 @@
   .auth-account-popover { animation: none; }
 }
 
+/* Profile and settings surfaces in user dark theme */
+:root[data-theme='dark'] .auth-account-popover,
+:root[data-theme='dark'] .auth-account-popover::before,
+:root[data-theme='dark'] .settings-card,
+:root[data-theme='dark'] .edit-profile-modal-card {
+  color: var(--text-primary);
+  background: var(--bg-white);
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .ig-profile-page,
+:root[data-theme='dark'] .ig-profile-tabs button,
+:root[data-theme='dark'] .ig-profile-stats strong,
+:root[data-theme='dark'] .edit-profile-modal-header h2,
+:root[data-theme='dark'] .close-modal-btn:hover,
+:root[data-theme='dark'] .profile-detail-item {
+  color: var(--text-primary);
+}
+
+:root[data-theme='dark'] .profile-neutral-button,
+:root[data-theme='dark'] .profile-follow-button.following,
+:root[data-theme='dark'] .edit-profile-actions .cancel-btn {
+  color: var(--text-primary);
+  background: var(--border-light);
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .profile-neutral-button:hover,
+:root[data-theme='dark'] .profile-settings-icon:hover {
+  background: var(--border-color);
+}
+
+:root[data-theme='dark'] .ig-profile-tabs,
+:root[data-theme='dark'] .edit-profile-modal-header,
+:root[data-theme='dark'] .edit-profile-actions,
+:root[data-theme='dark'] .ig-profile-stats {
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .ig-profile-empty-icon {
+  border-color: var(--text-primary);
+}
+
+:root[data-theme='dark'] .settings-link-error,
+:root[data-theme='dark'] .profile-inline-error {
+  color: #ffb4b8;
+  background: rgba(194, 44, 56, .16);
+  border-color: rgba(255, 120, 128, .28);
+}
+
+:root[data-theme='dark'] .password-recovery-page {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(216, 45, 108, .12), transparent 34%),
+    radial-gradient(circle at 85% 80%, rgba(245, 133, 41, .1), transparent 36%),
+    var(--bg-primary);
+}
+
+:root[data-theme='dark'] .password-recovery-card {
+  color: var(--text-primary);
+  background: rgba(24, 27, 32, .96);
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .password-recovery-card h1 {
+  color: var(--text-primary);
+}
+
+:root[data-theme='dark'] .password-recovery-card > p:not(.password-recovery-kicker) {
+  color: var(--text-secondary);
+}
+
+:root[data-theme='dark'] .password-recovery-success {
+  color: #a7e7bd;
+  background: rgba(35, 100, 59, .22);
+  border-color: rgba(101, 190, 130, .3);
+}
+
+:root[data-theme='dark'] .profile-settings-icon img,
+:root[data-theme='dark'] .settings-header > img,
+:root[data-theme='dark'] .ig-profile-empty-icon img,
+:root[data-theme='dark'] .create-post-field.icon-field > img {
+  filter: invert(1);
+}
+
 
 /* Downloaded SVG icon system */
 .inline-icon,

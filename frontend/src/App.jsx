@@ -14,14 +14,32 @@ import LocationDetailPage from './pages/LocationDetailPage';
 import AddLocationPage from './pages/AddLocationPage';
 import SavedPage from './pages/SavedPage';
 import NotificationsPage from './pages/NotificationsPage';
+import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import AdminPanel from './admin/AdminPanel';
+import AdminRoute from './admin/guards/AdminRoute';
+import './admin/styles/admin.css';
 import { api, getCurrentUser } from './services/api';
 
+const USER_THEME_KEY = 'localfood-user-theme';
+
+function getInitialTheme() {
+  try {
+    const savedTheme = window.localStorage.getItem(USER_THEME_KEY);
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+  } catch {
+    // Browser storage can be unavailable in private or restricted contexts.
+  }
+
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 function pageFromPath() {
+  if (window.location.pathname.startsWith('/admin')) return 'admin';
   switch (window.location.pathname) {
     case '/oauth2/callback': return 'oauth-callback';
     case '/forgot-password': return 'forgot-password';
@@ -32,6 +50,7 @@ function pageFromPath() {
 
 export default function App() {
   const [page, setPage] = useState(pageFromPath);
+  const [theme, setTheme] = useState(getInitialTheme);
   const [authUser, setAuthUser] = useState(getCurrentUser());
   const [detailId, setDetailId] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null);
@@ -39,6 +58,16 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locations, setLocations] = useState([]);
   const [authMode, setAuthMode] = useState('login');
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    try {
+      window.localStorage.setItem(USER_THEME_KEY, theme);
+    } catch {
+      // Keep the selected theme for this session when storage is unavailable.
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (!authUser) {
@@ -93,12 +122,17 @@ export default function App() {
   };
 
   const navigate = nextPage => {
-    if (!getCurrentUser() && ['add', 'saved', 'notifications', 'settings'].includes(nextPage)) {
+    if (!getCurrentUser() && ['add', 'saved', 'notifications', 'settings', 'chat'].includes(nextPage)) {
       openAuth('login');
       return;
     }
     if (nextPage === 'profile') {
       openProfile();
+      return;
+    }
+    if (nextPage === 'admin') {
+      window.history.pushState({}, document.title, '/admin');
+      setPage('admin');
       return;
     }
     setPage(nextPage);
@@ -129,6 +163,11 @@ export default function App() {
     setPage('profile');
   };
 
+  const exitAdmin = () => {
+    window.history.replaceState({}, document.title, '/');
+    setPage(getCurrentUser() ? 'home' : 'profile');
+  };
+
   const renderPage = () => {
     switch (page) {
       case 'home': return <HomePage onProfileOpen={openProfile} onAuthNavigate={openAuth} />;
@@ -138,6 +177,7 @@ export default function App() {
       case 'detail': return <LocationDetailPage locationId={detailId} onBack={() => navigate('home')} />;
       case 'saved': return <SavedPage onNavigateToDetail={goToDetail} />;
       case 'notifications': return <NotificationsPage />;
+      case 'chat': return <ChatPage />;
       case 'profile': return <ProfilePage initialMode={authMode} profileUserId={profileUserId}
         onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')}
         onForgotPassword={openForgotPassword} />;
@@ -169,6 +209,14 @@ export default function App() {
     return renderPage();
   }
 
+  if (page === 'admin') {
+    return (
+      <AdminRoute user={authUser} onBack={exitAdmin}>
+        <AdminPanel user={authUser} onExit={exitAdmin} />
+      </AdminRoute>
+    );
+  }
+
   if (!authUser) {
     return (
       <div className="auth-gate-app">
@@ -184,7 +232,8 @@ export default function App() {
       <Sidebar activePage={page} onNavigate={navigate} onProfileOpen={openProfile} />
       <main className="lf-main">
         <TopBar activePage={page} onNavigate={navigate} onSearchOpen={() => setShowSearch(true)}
-          onAuthNavigate={openAuth} />
+          onAuthNavigate={openAuth} theme={theme}
+          onThemeToggle={() => setTheme(current => current === 'dark' ? 'light' : 'dark')} />
         {renderPage()}
       </main>
 

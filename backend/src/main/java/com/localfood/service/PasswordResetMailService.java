@@ -25,7 +25,8 @@ public class PasswordResetMailService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void send(PasswordResetRequestedEvent event) {
         String resetUrl = UriComponentsBuilder.fromUriString(properties.getFrontendResetUri())
-                .queryParam("token", event.rawToken())
+                // A URL fragment is not sent to the frontend server or included in its access logs.
+                .fragment("token=" + event.rawToken())
                 .build()
                 .encode()
                 .toUriString();

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { MessageCircle, Moon, Sun } from 'lucide-react';
 import Icon from '../styles/icon';
 import { clearAuthSession, getCurrentUser } from '../services/api';
 
-export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNavigate }) {
+export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNavigate, theme, onThemeToggle }) {
   const [user, setUser] = useState(getCurrentUser());
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -42,8 +43,29 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
     { id: 'explore', icon: 'search' },
     { id: 'map', icon: 'marker' },
     { id: 'add', icon: 'plus' },
+    { id: 'chat', icon: 'chat' },
     { id: 'profile', icon: 'user' },
   ];
+
+  const ThemeToggle = ({ compact = false }) => {
+    const isDark = theme === 'dark';
+    const label = isDark ? 'Bật chế độ sáng' : 'Bật chế độ tối';
+
+    return (
+      <button
+        className={'theme-toggle-button' + (compact ? ' compact' : '')}
+        type="button"
+        onClick={onThemeToggle}
+        aria-label={label}
+        aria-pressed={isDark}
+        title={label}
+      >
+        {isDark
+          ? <Sun className="theme-toggle-icon" aria-hidden="true" />
+          : <Moon className="theme-toggle-icon" aria-hidden="true" />}
+      </button>
+    );
+  };
 
   const AccountControl = ({ compact = false }) => (
     <div className={'auth-account-menu' + (compact ? ' compact' : '')}>
@@ -79,6 +101,7 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
   return (
     <>
       <div className="lf-desktop-auth" aria-label="Tài khoản">
+        <ThemeToggle />
         {user ? (
           <AccountControl />
         ) : (
@@ -95,6 +118,7 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
           LocalFood
         </span>
         <div className="lf-topbar-actions">
+          <ThemeToggle compact />
           <button className="lf-topbar-btn" onClick={onSearchOpen} aria-label="Tìm kiếm">
             <Icon name="search" alt="" className="topbar-icon" />
           </button>
@@ -114,7 +138,9 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
             <button key={item.id}
               className={'bottom-nav-btn ' + (activePage === item.id ? 'active' : '')}
               onClick={() => onNavigate(item.id)} aria-label={item.id}>
-              <Icon name={item.icon} alt="" className="bottom-nav-icon" />
+              {item.icon === 'chat'
+                ? <MessageCircle className="bottom-nav-lucide-icon" aria-hidden="true" />
+                : <Icon name={item.icon} alt="" className="bottom-nav-icon" />}
             </button>
           ))}
         </div>

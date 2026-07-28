@@ -3,7 +3,11 @@ import { api } from '../services/api';
 import Icon from '../styles/icon';
 
 export default function ResetPasswordPage({ onBackToLogin }) {
-  const token = useMemo(() => new URLSearchParams(window.location.search).get('token'), []);
+  const token = useMemo(() => {
+    const fragment = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    return new URLSearchParams(fragment).get('token')
+      || new URLSearchParams(window.location.search).get('token');
+  }, []);
   const [form, setForm] = useState({ password: '', confirmPassword: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
