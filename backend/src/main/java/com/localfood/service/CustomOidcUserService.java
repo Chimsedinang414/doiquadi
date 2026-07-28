@@ -2,6 +2,8 @@ package com.localfood.service;
 
 import com.localfood.model.AuthProvider;
 import com.localfood.security.LocalOidcUser;
+import com.localfood.security.OAuthLinkCookieService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
@@ -16,6 +18,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest, OidcUser> {
     private final SocialAccountLinkService accountLinkService;
+    private final OAuthLinkIntentService linkIntentService;
+    private final OAuthLinkCookieService linkCookieService;
+    private final HttpServletRequest servletRequest;
     private final OidcUserService delegate = new OidcUserService();
 
     @Override
@@ -29,24 +34,18 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         Map<String, Object> claims = providerUser.getClaims();
         String subject = stringValue(claims.get("sub"));
         String email = stringValue(claims.get("email"));
-        boolean emailVerified = booleanValue(claims.get("email_verified"));
-        if (provider == AuthProvider.APPLE && email != null) {
-            // Apple documents the requested email as verified (including relay addresses).
-            emailVerified = true;
-        }
-        var localUser = accountLinkService.resolve(
-                provider,
-                subject,
-                email,
-                emailVerified,
-                stringValue(claims.get("name")),
-                stringValue(claims.get("picture"))
-        );
-        return new LocalOidcUser(providerUser, localUser);
-    }
-
-    private static boolean booleanValue(Object value) {
-        return Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(String.valueOf(value));
+        String linkToken = linkCookieService.read(servletRequest);
+        boolean accountLinking = linkToken != null;
+        var localUser = accountLinking
+                ? linkIntentService.complete(linkToken, provider, subject, email)
+                : accountLinkService.resolve(
+                        provider,
+                        subject,
+                        email,
+                        stringValue(claims.get("name")),
+                        stringValue(claims.get("picture"))
+                );
+        return new LocalOidcUser(providerUser, localUser, provider, accountLinking);
     }
 
     private static String stringValue(Object value) {

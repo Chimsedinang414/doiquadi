@@ -82,6 +82,58 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
     ? new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(new Date(profile.createdAt))
     : null;
 
+  const formattedDob = profile.dateOfBirth
+    ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(profile.dateOfBirth))
+    : null;
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    phoneNumber: '',
+    address: '',
+    dateOfBirth: '',
+    bio: '',
+    avatar: '',
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const openEditModal = () => {
+    setEditForm({
+      fullName: profile.fullName || '',
+      phoneNumber: profile.phoneNumber || '',
+      address: profile.address || '',
+      dateOfBirth: profile.dateOfBirth || '',
+      bio: profile.bio || '',
+      avatar: profile.avatar || '',
+    });
+    setEditError('');
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async event => {
+    event.preventDefault();
+    setEditError('');
+    setEditSubmitting(true);
+    try {
+      const updatedUser = await api.updateProfile(profile.id, editForm);
+      setProfile(previous => ({
+        ...previous,
+        fullName: updatedUser.fullName,
+        phoneNumber: updatedUser.phoneNumber,
+        address: updatedUser.address,
+        dateOfBirth: updatedUser.dateOfBirth,
+        bio: updatedUser.bio,
+        avatar: updatedUser.avatar,
+      }));
+      setShowEditModal(false);
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   return (
     <section className="ig-profile-page">
       <div className="ig-profile-header">
@@ -94,9 +146,10 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
         </div>
         <div className="ig-profile-summary">
           <div className="ig-profile-title-row">
-            <h1>{profile.userName}</h1>
+            <h1>{profile.fullName || profile.userName}</h1>
+            {profile.fullName && <span className="profile-handle">@{profile.userName}</span>}
             {isOwnProfile ? (
-              <button className="profile-neutral-button" type="button" onClick={onSettings}>
+              <button className="profile-neutral-button" type="button" onClick={openEditModal}>
                 <Icon name="edit-filled" alt="" className="inline-icon" />
                 {copy.edit}
               </button>
@@ -108,20 +161,39 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
               </button>
             )}
             {isOwnProfile && (
-              <button className="profile-settings-icon" type="button" onClick={onSettings} aria-label={copy.edit}>
+              <button className="profile-settings-icon" type="button" onClick={onSettings} aria-label="Cài đặt">
                 <Icon name="settings" alt="" />
               </button>
             )}
           </div>
-          <div className="ig-profile-stats" aria-label={'Th\u1ed1ng k\u00ea trang c\u00e1 nh\u00e2n'}>
+          <div className="ig-profile-stats" aria-label={'Thống kê trang cá nhân'}>
             <span><strong>{formatCount(profile.postsCount)}</strong> {copy.posts}</span>
             <span><strong>{formatCount(profile.followersCount)}</strong> {copy.followers}</span>
             <span><strong>{formatCount(profile.followingCount)}</strong> {copy.followingCount}</span>
           </div>
           <div className="ig-profile-bio">
-            <strong>{profile.userName}</strong>
+            <strong>{profile.fullName ? `${profile.fullName} (@${profile.userName})` : profile.userName}</strong>
             <p>{profile.bio || copy.noBio}</p>
-            {joined && <small>{copy.joined} {joined}</small>}
+            <div className="profile-details-list">
+              {profile.phoneNumber && (
+                <div className="profile-detail-item">
+                  <Icon name="envelope" alt="" className="inline-icon" />
+                  <span>SĐT: {profile.phoneNumber}</span>
+                </div>
+              )}
+              {profile.address && (
+                <div className="profile-detail-item">
+                  <Icon name="marker" alt="" className="inline-icon" />
+                  <span>Địa chỉ: {profile.address}</span>
+                </div>
+              )}
+              {formattedDob && (
+                <div className="profile-detail-item">
+                  <span>🎂 Ngày sinh: {formattedDob}</span>
+                </div>
+              )}
+              {joined && <small className="profile-joined-date">{copy.joined} {joined}</small>}
+            </div>
           </div>
         </div>
       </div>
@@ -162,7 +234,64 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
           <p>{isOwnProfile ? copy.emptyOwn : copy.emptyOther}</p>
         </div>
       )}
+
+      {showEditModal && (
+        <div className="edit-profile-modal-backdrop" onClick={() => setShowEditModal(false)}>
+          <div className="edit-profile-modal-card" onClick={event => event.stopPropagation()}>
+            <div className="edit-profile-modal-header">
+              <h2>Chỉnh sửa trang cá nhân</h2>
+              <button type="button" className="close-modal-btn" onClick={() => setShowEditModal(false)}>&times;</button>
+            </div>
+
+            {editError && <div className="auth-error">{editError}</div>}
+
+            <form onSubmit={handleEditSubmit} className="edit-profile-form">
+              <label className="auth-field">
+                <span>Họ và tên</span>
+                <input name="fullName" placeholder="Ví dụ: Nguyễn Văn A" maxLength={100}
+                  value={editForm.fullName} onChange={e => setEditForm({ ...editForm, fullName: e.target.value })} />
+              </label>
+
+              <label className="auth-field">
+                <span>Số điện thoại</span>
+                <input name="phoneNumber" placeholder="Ví dụ: 0912345678" maxLength={20}
+                  value={editForm.phoneNumber} onChange={e => setEditForm({ ...editForm, phoneNumber: e.target.value })} />
+              </label>
+
+              <label className="auth-field">
+                <span>Địa chỉ</span>
+                <input name="address" placeholder="Ví dụ: Cầu Giấy, Hà Nội" maxLength={255}
+                  value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
+              </label>
+
+              <label className="auth-field">
+                <span>Ngày sinh</span>
+                <input name="dateOfBirth" type="date"
+                  value={editForm.dateOfBirth} onChange={e => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+              </label>
+
+              <label className="auth-field">
+                <span>URL Ảnh đại diện</span>
+                <input name="avatar" placeholder="https://..." maxLength={500}
+                  value={editForm.avatar} onChange={e => setEditForm({ ...editForm, avatar: e.target.value })} />
+              </label>
+
+              <label className="auth-field">
+                <span>Giới thiệu bản thân</span>
+                <textarea name="bio" placeholder="Chia sẻ về sở thích ẩm thực..." rows={3}
+                  value={editForm.bio} onChange={e => setEditForm({ ...editForm, bio: e.target.value })} />
+              </label>
+
+              <div className="edit-profile-actions">
+                <button type="button" className="cancel-btn" onClick={() => setShowEditModal(false)}>Hủy</button>
+                <button type="submit" className="save-btn" disabled={editSubmitting}>
+                  {editSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
-

@@ -1,4 +1,8 @@
 spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   application:
     name: LocalFood Backend
 
@@ -7,6 +11,31 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  sql:
+    init:
+      # This legacy schema is not Flyway-managed. Idempotent initializers run
+      # before Hibernate validation and only create security support tables.
+      mode: ${SQL_INIT_MODE:always}
+      schema-locations:
+        - classpath:db/schema/oauth-link-intents.sql
+        - classpath:db/schema/password-reset-tokens.sql
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_STARTTLS_ENABLE:true}
+            required: ${MAIL_STARTTLS_REQUIRED:true}
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
 
   jpa:
     open-in-view: false
@@ -29,14 +58,6 @@ spring:
             client-id: ${FACEBOOK_CLIENT_ID}
             client-secret: ${FACEBOOK_CLIENT_SECRET}
             scope: email,public_profile
-          apple:
-            provider: apple
-            client-id: ${APPLE_CLIENT_ID}
-            client-secret: ${APPLE_CLIENT_SECRET:generated-at-runtime}
-            client-authentication-method: client_secret_post
-            authorization-grant-type: authorization_code
-            redirect-uri: {baseUrl}/login/oauth2/code/{registrationId}
-            scope: openid,name,email
         provider:
           apple:
             issuer-uri: https://appleid.apple.com
@@ -65,16 +86,22 @@ app:
     refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
   oauth2:
     frontend-redirect-uri: ${OAUTH2_FRONTEND_REDIRECT_URI:http://localhost:3000/oauth2/callback}
-    auto-link-verified-email: ${OAUTH2_AUTO_LINK_VERIFIED_EMAIL:false}
-    authorization-cookie-secure: ${OAUTH2_COOKIE_SECURE:true}
+    authorization-cookie-secure: ${OAUTH2_COOKIE_SECURE:false}
     authorization-cookie-ttl: ${OAUTH2_COOKIE_TTL:PT5M}
+    link-intent-ttl: ${OAUTH2_LINK_INTENT_TTL:PT5M}
     login-code-ttl: ${OAUTH2_LOGIN_CODE_TTL:PT1M}
+  password-reset:
+    enabled: ${PASSWORD_RESET_ENABLED:false}
+    frontend-reset-uri: ${PASSWORD_RESET_FRONTEND_URI:http://localhost:3000/reset-password}
+    mail-from: ${PASSWORD_RESET_MAIL_FROM:${MAIL_USERNAME:}}
+    token-ttl: ${PASSWORD_RESET_TOKEN_TTL:PT15M}
+    resend-cooldown: ${PASSWORD_RESET_RESEND_COOLDOWN:PT1M}
   apple:
-    team-id: ${APPLE_TEAM_ID}
-    key-id: ${APPLE_KEY_ID}
-    client-id: ${APPLE_CLIENT_ID}
+    team-id: ${APPLE_TEAM_ID:unconfigured}
+    key-id: ${APPLE_KEY_ID:unconfigured}
+    client-id: ${APPLE_CLIENT_ID:unconfigured}
     # PKCS#8 P-256 private key, PEM text or Base64 DER. Never commit the .p8 file.
-    private-key: ${APPLE_PRIVATE_KEY}
+    private-key: ${APPLE_PRIVATE_KEY:unconfigured}
     client-secret-ttl: ${APPLE_CLIENT_SECRET_TTL:PT5M}
   storage:
     enabled: ${STORAGE_ENABLED:false}

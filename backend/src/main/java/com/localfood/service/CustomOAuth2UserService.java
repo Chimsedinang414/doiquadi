@@ -2,6 +2,8 @@ package com.localfood.service;
 
 import com.localfood.model.AuthProvider;
 import com.localfood.security.LocalOAuth2User;
+import com.localfood.security.OAuthLinkCookieService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -16,6 +18,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
     private final SocialAccountLinkService accountLinkService;
+    private final OAuthLinkIntentService linkIntentService;
+    private final OAuthLinkCookieService linkCookieService;
+    private final HttpServletRequest servletRequest;
     private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
 
     @Override
@@ -29,10 +34,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String name = stringValue(attributes.get("name"));
         String avatar = facebookPicture(attributes);
 
-        // Facebook has no OIDC email_verified claim, so an existing account is never
-        // auto-linked solely from this payload.
-        var localUser = accountLinkService.resolve(provider, subject, email, false, name, avatar);
-        return new LocalOAuth2User(providerUser, localUser);
+        String linkToken = linkCookieService.read(servletRequest);
+        boolean accountLinking = linkToken != null;
+        var localUser = accountLinking
+                ? linkIntentService.complete(linkToken, provider, subject, email)
+                : accountLinkService.resolve(provider, subject, email, name, avatar);
+        return new LocalOAuth2User(providerUser, localUser, provider, accountLinking);
     }
 
     @SuppressWarnings("unchecked")

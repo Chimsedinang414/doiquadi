@@ -1,7 +1,9 @@
 package com.localfood.controller;
 
+import com.localfood.dto.UpdateProfileRequest;
 import com.localfood.dto.UserResponse;
 import com.localfood.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,5 +15,12 @@ public class UserController {
     @GetMapping("/users/{id}")
     public UserResponse getById(@PathVariable String id) {
         return userService.getUserById(id);
+    }
+
+    @PutMapping("/users/{id}")
+    public UserResponse updateProfile(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        return userService.updateProfile(id, request);
     }
 }

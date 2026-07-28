@@ -14,7 +14,6 @@ import org.hibernate.annotations.UuidGenerator;
 @NoArgsConstructor
 public class Food {
     @Id
-    @GeneratedValue
     @UuidGenerator
     @Column(length = 36, updatable = false, nullable = false)
     private String id;

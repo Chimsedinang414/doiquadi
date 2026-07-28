@@ -25,7 +25,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Post {
     @Id
-    @GeneratedValue
     @UuidGenerator
     @Column(length = 36, updatable = false, nullable = false)
     private String id;

@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import Icon from '../styles/icon';
-import { getCurrentUser } from '../services/api';
+import { api, getCurrentUser, getOAuthAuthorizationUrl } from '../services/api';
+
+const oauthProviders = [
+  { id: 'google', label: 'Google' },
+  { id: 'facebook', label: 'Facebook' },
+];
 
 const text = {
   title: 'C\u00e0i \u0111\u1eb7t',
   account: 'T\u00e0i kho\u1ea3n',
   profile: 'Xem trang c\u00e1 nh\u00e2n',
+  connectedAccounts: 'T\u00e0i kho\u1ea3n \u0111\u0103ng nh\u1eadp',
+  connectedAccountsHint: 'Ch\u1ec9 li\u00ean k\u1ebft sau khi b\u1ea1n \u0111\u00e3 \u0111\u0103ng nh\u1eadp LocalFood. Email t\u1eeb nh\u00e0 cung c\u1ea5p kh\u00f4ng \u0111\u01b0\u1ee3c d\u00f9ng \u0111\u1ec3 t\u1ef1 h\u1ee3p nh\u1ea5t t\u00e0i kho\u1ea3n.',
+  connect: 'Li\u00ean k\u1ebft',
+  connected: '\u0110\u00e3 li\u00ean k\u1ebft',
+  linking: '\u0110ang chuy\u1ec3n h\u01b0\u1edbng\u2026',
   preferences: 'T\u00f9y ch\u1ecdn',
   privateLabel: 'T\u00e0i kho\u1ea3n ri\u00eang t\u01b0',
   privateHint: 'Ch\u1ec9 nh\u1eefng ng\u01b0\u1eddi b\u1ea1n ch\u1ea5p nh\u1eadn m\u1edbi xem \u0111\u01b0\u1ee3c n\u1ed9i dung.',
@@ -19,6 +29,9 @@ export default function SettingsPage({ onProfileOpen, onAuthNavigate }) {
   const [user, setUser] = useState(getCurrentUser());
   const [privateAccount, setPrivateAccount] = useState(() => localStorage.getItem('localfoodPrivateAccount') === 'true');
   const [notifications, setNotifications] = useState(() => localStorage.getItem('localfoodNotifications') !== 'false');
+  const [linkedProviders, setLinkedProviders] = useState(new Set());
+  const [linkingProvider, setLinkingProvider] = useState('');
+  const [linkError, setLinkError] = useState('');
 
   useEffect(() => {
     const refresh = () => setUser(getCurrentUser());
@@ -30,9 +43,34 @@ export default function SettingsPage({ onProfileOpen, onAuthNavigate }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user) return undefined;
+    let active = true;
+    api.getOAuthLinks()
+      .then(result => {
+        if (active) setLinkedProviders(new Set(result.linkedProviders || []));
+      })
+      .catch(error => {
+        if (active) setLinkError(error.message);
+      });
+    return () => { active = false; };
+  }, [user]);
+
   const changeSetting = (key, value, setter) => {
     setter(value);
     localStorage.setItem(key, String(value));
+  };
+
+  const startOAuthLink = async provider => {
+    setLinkError('');
+    setLinkingProvider(provider);
+    try {
+      await api.startOAuthLink(provider);
+      window.location.assign(getOAuthAuthorizationUrl(provider));
+    } catch (error) {
+      setLinkError(error.message);
+      setLinkingProvider('');
+    }
   };
 
   if (!user) return (
@@ -61,6 +99,30 @@ export default function SettingsPage({ onProfileOpen, onAuthNavigate }) {
         </button>
       </div>
       <div className="settings-card">
+        <h2>{text.connectedAccounts}</h2>
+        <p className="settings-security-hint">{text.connectedAccountsHint}</p>
+        {linkError && <div className="settings-link-error" role="alert">{linkError}</div>}
+        <div className="settings-provider-list">
+          {oauthProviders.map(provider => {
+            const connected = linkedProviders.has(provider.id);
+            const linking = linkingProvider === provider.id;
+            return (
+              <div className="settings-provider-row" key={provider.id}>
+                <span className="settings-provider-logo"><Icon name={provider.id} alt="" /></span>
+                <span className="settings-provider-copy">
+                  <strong>{provider.label}</strong>
+                  <small>{connected ? text.connected : 'Ch\u01b0a li\u00ean k\u1ebft'}</small>
+                </span>
+                <button type="button" disabled={connected || Boolean(linkingProvider)}
+                  onClick={() => startOAuthLink(provider.id)}>
+                  {connected ? text.connected : linking ? text.linking : text.connect}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="settings-card">
         <h2>{text.preferences}</h2>
         <label className="settings-toggle-row">
           <span><strong>{text.privateLabel}</strong><small>{text.privateHint}</small></span>
@@ -76,4 +138,3 @@ export default function SettingsPage({ onProfileOpen, onAuthNavigate }) {
     </section>
   );
 }
-

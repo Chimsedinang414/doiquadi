@@ -17,12 +17,21 @@ import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { api, getCurrentUser } from './services/api';
 
+function pageFromPath() {
+  switch (window.location.pathname) {
+    case '/oauth2/callback': return 'oauth-callback';
+    case '/forgot-password': return 'forgot-password';
+    case '/reset-password': return 'reset-password';
+    default: return getCurrentUser() ? 'home' : 'profile';
+  }
+}
+
 export default function App() {
-  const [page, setPage] = useState(() => window.location.pathname === '/oauth2/callback'
-    ? 'oauth-callback'
-    : getCurrentUser() ? 'home' : 'profile');
+  const [page, setPage] = useState(pageFromPath);
   const [authUser, setAuthUser] = useState(getCurrentUser());
   const [detailId, setDetailId] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null);
@@ -60,6 +69,12 @@ export default function App() {
     const handler = event => event.key === 'Escape' && setShowSearch(false);
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => setPage(pageFromPath());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const searchResults = useMemo(() => {
@@ -102,6 +117,18 @@ export default function App() {
     setPage('profile');
   };
 
+  const openForgotPassword = () => {
+    window.history.pushState({}, document.title, '/forgot-password');
+    setPage('forgot-password');
+  };
+
+  const returnToLogin = () => {
+    window.history.replaceState({}, document.title, '/');
+    setAuthMode('login');
+    setProfileUserId(null);
+    setPage('profile');
+  };
+
   const renderPage = () => {
     switch (page) {
       case 'home': return <HomePage onProfileOpen={openProfile} onAuthNavigate={openAuth} />;
@@ -112,17 +139,24 @@ export default function App() {
       case 'saved': return <SavedPage onNavigateToDetail={goToDetail} />;
       case 'notifications': return <NotificationsPage />;
       case 'profile': return <ProfilePage initialMode={authMode} profileUserId={profileUserId}
-        onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')} />;
+        onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')}
+        onForgotPassword={openForgotPassword} />;
       case 'settings': return <SettingsPage onProfileOpen={openProfile}
         onAuthNavigate={openAuth} />;
       case 'oauth-callback': return null;
+      case 'forgot-password': return <ForgotPasswordPage onBackToLogin={returnToLogin} />;
+      case 'reset-password': return <ResetPasswordPage onBackToLogin={returnToLogin} />;
       default: return <HomePage onProfileOpen={openProfile} onAuthNavigate={openAuth} />;
     }
   };
 
-  const completeOAuth = useCallback(() => setPage('home'), []);
-  const retryOAuth = useCallback(() => {
+  const completeOAuth = useCallback(destination => setPage(destination || 'home'), []);
+  const retryOAuth = useCallback(destination => {
     window.history.replaceState({}, document.title, '/');
+    if (destination === 'settings' && getCurrentUser()) {
+      setPage('settings');
+      return;
+    }
     setAuthMode('login');
     setPage('profile');
   }, []);
@@ -131,11 +165,16 @@ export default function App() {
     return <OAuthCallbackPage onComplete={completeOAuth} onRetry={retryOAuth} />;
   }
 
+  if (page === 'forgot-password' || page === 'reset-password') {
+    return renderPage();
+  }
+
   if (!authUser) {
     return (
       <div className="auth-gate-app">
         <ProfilePage initialMode={authMode} profileUserId={null}
-          onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')} />
+          onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')}
+          onForgotPassword={openForgotPassword} />
       </div>
     );
   }

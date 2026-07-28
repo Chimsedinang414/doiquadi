@@ -85,7 +85,12 @@ public class SocialService {
         return new SocialDtos.ProfileResponse(
                 user.getId(),
                 user.getUserName(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhoneNumber(),
                 user.getAvatar(),
+                user.getAddress(),
+                user.getDateOfBirth(),
                 user.getBio(),
                 user.getCreatedAt(),
                 posts.size(),

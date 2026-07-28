@@ -1,5 +1,6 @@
 package com.localfood.security;
 
+import com.localfood.model.AuthProvider;
 import com.localfood.model.Role;
 import com.localfood.model.User;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,10 +15,19 @@ import java.util.Map;
 public class LocalOidcUser implements OidcUser, LocalOAuthPrincipal {
     private final OidcUser delegate;
     private final User user;
+    private final AuthProvider provider;
+    private final boolean accountLinking;
 
-    public LocalOidcUser(OidcUser delegate, User user) {
+    public LocalOidcUser(
+            OidcUser delegate,
+            User user,
+            AuthProvider provider,
+            boolean accountLinking
+    ) {
         this.delegate = delegate;
         this.user = user;
+        this.provider = provider;
+        this.accountLinking = accountLinking;
     }
 
     @Override
@@ -56,5 +66,15 @@ public class LocalOidcUser implements OidcUser, LocalOAuthPrincipal {
     @Override
     public User getLocalUser() {
         return user;
+    }
+
+    @Override
+    public AuthProvider getProvider() {
+        return provider;
+    }
+
+    @Override
+    public boolean isAccountLinking() {
+        return accountLinking;
     }
 }

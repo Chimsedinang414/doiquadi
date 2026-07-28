@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -31,7 +32,12 @@ public final class SocialDtos {
     public record ProfileResponse(
             String id,
             String userName,
+            String fullName,
+            String email,
+            String phoneNumber,
             String avatar,
+            String address,
+            LocalDate dateOfBirth,
             String bio,
             LocalDateTime createdAt,
             long postsCount,

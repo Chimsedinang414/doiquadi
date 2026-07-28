@@ -3,7 +3,7 @@ import { api, getCurrentUser, getOAuthAuthorizationUrl, setAuthSession } from '.
 import UserProfileView from '../components/UserProfileView';
 import Icon from '../styles/icon';
 
-export default function ProfilePage({ initialMode = 'login', profileUserId, onNavigateToDetail, onSettings }) {
+export default function ProfilePage({ initialMode = 'login', profileUserId, onNavigateToDetail, onSettings, onForgotPassword }) {
   const [user, setUser] = useState(getCurrentUser());
   const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ userName: '', email: '', password: '', bio: '' });
@@ -98,9 +98,9 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
               <span className="auth-provider-mark"><Icon name="facebook" alt="" /></span>
               <span>Tiếp tục với Facebook</span>
             </button>
-            <button type="button" className="auth-social-button apple" onClick={() => startOAuth('apple')}>
+            <button type="button" className="auth-social-button apple" disabled title="Sắp ra mắt">
               <span className="auth-provider-mark"><Icon name="apple" alt="" /></span>
-              <span>Tiếp tục với Apple</span>
+              <span>Apple (sắp ra mắt)</span>
             </button>
           </div>
 
@@ -130,6 +130,12 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
                 placeholder={mode === 'register' ? 'Tối thiểu 12 ký tự' : 'Nhập mật khẩu'} value={form.password}
                 onChange={update} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} />
             </label>
+
+            {mode === 'login' && (
+              <button type="button" className="auth-forgot-password" onClick={onForgotPassword}>
+                Quên mật khẩu?
+              </button>
+            )}
 
             {mode === 'register' && (
               <label className="auth-field">

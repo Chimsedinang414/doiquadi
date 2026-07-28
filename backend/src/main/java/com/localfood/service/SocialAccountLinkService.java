@@ -1,6 +1,5 @@
 package com.localfood.service;
 
-import com.localfood.config.OAuth2Properties;
 import com.localfood.model.AuthProvider;
 import com.localfood.model.OAuthAccount;
 import com.localfood.model.User;
@@ -20,14 +19,12 @@ import java.util.Locale;
 public class SocialAccountLinkService {
     private final UserRepository userRepository;
     private final OAuthAccountRepository oauthAccountRepository;
-    private final OAuth2Properties properties;
 
     @Transactional
     public User resolve(
             AuthProvider provider,
             String providerSubject,
             String emailValue,
-            boolean emailVerified,
             String displayName,
             String avatar
     ) {
@@ -55,15 +52,12 @@ public class SocialAccountLinkService {
             if (!user.isEnabled()) {
                 throw oauthError("ACCOUNT_DISABLED", "This account is disabled");
             }
-            if (!properties.isAutoLinkVerifiedEmail() || !emailVerified) {
-                throw oauthError(
-                        "ACCOUNT_LINKING_REQUIRED",
-                        "An account already uses this email. Sign in to that account before linking this provider"
-                );
-            }
-            if (oauthAccountRepository.existsByUserIdAndProvider(user.getId(), provider)) {
-                throw oauthError("PROVIDER_ALREADY_LINKED", "This account is already linked to another provider identity");
-            }
+            // Even a provider-verified email is not sufficient proof that the visitor
+            // controls this existing LocalFood account. Linking must be initiated there.
+            throw oauthError(
+                    "ACCOUNT_LINKING_REQUIRED",
+                    "An account already uses this email. Sign in to that account before linking this provider"
+            );
         } else {
             user = User.builder()
                     .userName(uniqueUserName(displayName, email, providerSubject))
@@ -88,6 +82,58 @@ public class SocialAccountLinkService {
                     .build());
         } catch (DataIntegrityViolationException ex) {
             throw oauthError("OAUTH_LINK_CONFLICT", "The social identity was linked concurrently; please sign in again");
+        }
+        return user;
+    }
+
+    @Transactional
+    public User linkExisting(
+            User user,
+            AuthProvider provider,
+            String providerSubject,
+            String emailValue
+    ) {
+        if (provider == AuthProvider.LOCAL) {
+            throw oauthError("INVALID_PROVIDER_IDENTITY", "A local account cannot be linked as OAuth");
+        }
+        if (providerSubject == null || providerSubject.isBlank()) {
+            throw oauthError("INVALID_PROVIDER_IDENTITY", "The provider did not return a stable subject");
+        }
+
+        OAuthAccount existingIdentity = oauthAccountRepository
+                .findByProviderAndProviderSubject(provider, providerSubject)
+                .orElse(null);
+        if (existingIdentity != null) {
+            if (existingIdentity.getUser().getId().equals(user.getId())) {
+                return user;
+            }
+            throw oauthError(
+                    "OAUTH_IDENTITY_IN_USE",
+                    "This social identity is already linked to another account"
+            );
+        }
+        if (oauthAccountRepository.existsByUserIdAndProvider(user.getId(), provider)) {
+            throw oauthError(
+                    "PROVIDER_ALREADY_LINKED",
+                    "This account is already linked to another identity from this provider"
+            );
+        }
+
+        String providerEmail = emailValue == null || emailValue.isBlank()
+                ? null
+                : emailValue.trim().toLowerCase(Locale.ROOT);
+        try {
+            oauthAccountRepository.saveAndFlush(OAuthAccount.builder()
+                    .provider(provider)
+                    .providerSubject(providerSubject)
+                    .emailAtProvider(providerEmail)
+                    .user(user)
+                    .build());
+        } catch (DataIntegrityViolationException ex) {
+            throw oauthError(
+                    "OAUTH_LINK_CONFLICT",
+                    "The social identity was linked concurrently; please try again"
+            );
         }
         return user;
     }

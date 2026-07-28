@@ -13,7 +13,7 @@ import java.time.LocalTime;
 @Table(name = "locations")
 @Getter @Setter @NoArgsConstructor
 public class Location {
-    @Id @GeneratedValue @UuidGenerator
+    @Id @UuidGenerator
     @Column(length = 36, updatable = false, nullable = false)
     private String id;
     @NotBlank @Column(nullable = false)

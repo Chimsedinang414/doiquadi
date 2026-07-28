@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
@@ -20,6 +19,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -34,7 +34,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class User {
     @Id
-    @GeneratedValue
     @UuidGenerator
     @Column(length = 36, updatable = false, nullable = false)
     private String id;
@@ -67,8 +66,20 @@ public class User {
     @Builder.Default
     private int credentialsVersion = 0;
 
+    @Column(name = "full_name", length = 100)
+    private String fullName;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
     @Column(name = "avatar_url", length = 500)
     private String avatar;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
     @Column(columnDefinition = "TEXT")
     private String bio;
@@ -79,6 +90,9 @@ public class User {
 
     @PrePersist
     void initializeAuthenticationSubject() {
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+        }
         if (authSubject == null) {
             authSubject = UUID.randomUUID().toString();
         }

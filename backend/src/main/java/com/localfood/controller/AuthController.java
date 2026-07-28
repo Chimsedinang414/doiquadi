@@ -3,9 +3,13 @@ package com.localfood.controller;
 import com.localfood.dto.AuthResponse;
 import com.localfood.dto.LoginRequest;
 import com.localfood.dto.OAuthExchangeRequest;
+import com.localfood.dto.ForgotPasswordRequest;
+import com.localfood.dto.PasswordResetResponse;
 import com.localfood.dto.RefreshTokenRequest;
 import com.localfood.dto.RegisterRequest;
+import com.localfood.dto.ResetPasswordRequest;
 import com.localfood.service.AuthenticationService;
+import com.localfood.service.PasswordResetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthenticationService authenticationService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -40,5 +45,20 @@ public class AuthController {
     @PostMapping("/oauth2/exchange")
     public AuthResponse exchangeOAuthCode(@Valid @RequestBody OAuthExchangeRequest request) {
         return authenticationService.exchangeOAuthCode(request.code());
+    }
+
+    @PostMapping("/password/forgot")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public PasswordResetResponse forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
+        return passwordResetService.requestReset(request.email());
+    }
+
+    @PostMapping("/password/reset")
+    public PasswordResetResponse resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        return passwordResetService.resetPassword(request.token(), request.newPassword());
     }
 }

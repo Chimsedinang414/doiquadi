@@ -22,9 +22,12 @@ public class AppleAuthorizationCodeTokenResponseClient
         Converter<OAuth2AuthorizationCodeGrantRequest, RequestEntity<?>> converter = request -> {
             OAuth2AuthorizationCodeGrantRequest effectiveRequest = request;
             if ("apple".equals(request.getClientRegistration().getRegistrationId())) {
+                String clientSecret = appleClientSecretGenerator.isConfigured()
+                        ? appleClientSecretGenerator.generate()
+                        : "unconfigured";
                 ClientRegistration registration = ClientRegistration
                         .withClientRegistration(request.getClientRegistration())
-                        .clientSecret(appleClientSecretGenerator.generate())
+                        .clientSecret(clientSecret)
                         .build();
                 effectiveRequest = new OAuth2AuthorizationCodeGrantRequest(
                         registration,

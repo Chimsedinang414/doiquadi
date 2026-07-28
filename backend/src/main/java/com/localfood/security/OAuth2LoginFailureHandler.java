@@ -17,6 +17,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
     private final OAuth2Properties properties;
+    private final OAuthLinkCookieService linkCookieService;
 
     @Override
     public void onAuthenticationFailure(
@@ -31,11 +32,15 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
                 code = candidate;
             }
         }
-        String redirect = UriComponentsBuilder.fromUriString(properties.getFrontendRedirectUri())
-                .queryParam("error", code)
-                .build()
-                .encode()
-                .toUriString();
+        boolean accountLinking = linkCookieService.read(request) != null;
+        linkCookieService.clear(request, response);
+        UriComponentsBuilder redirectBuilder = UriComponentsBuilder
+                .fromUriString(properties.getFrontendRedirectUri())
+                .queryParam("error", code);
+        if (accountLinking) {
+            redirectBuilder.queryParam("flow", "link");
+        }
+        String redirect = redirectBuilder.build().encode().toUriString();
         response.sendRedirect(redirect);
     }
 }

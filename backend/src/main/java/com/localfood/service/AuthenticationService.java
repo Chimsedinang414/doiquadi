@@ -159,8 +159,12 @@ public class AuthenticationService {
         return UserResponse.builder()
                 .id(user.getId())
                 .userName(user.getUserName())
+                .fullName(user.getFullName())
                 .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
                 .avatar(user.getAvatar())
+                .address(user.getAddress())
+                .dateOfBirth(user.getDateOfBirth())
                 .bio(user.getBio())
                 .createdAt(user.getCreatedAt())
                 .build();

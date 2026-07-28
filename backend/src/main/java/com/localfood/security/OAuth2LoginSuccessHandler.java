@@ -18,6 +18,7 @@ import java.io.IOException;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final AuthenticationService authenticationService;
     private final OAuth2Properties properties;
+    private final OAuthLinkCookieService linkCookieService;
 
     @Override
     public void onAuthenticationSuccess(
@@ -28,12 +29,21 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         if (!(authentication.getPrincipal() instanceof LocalOAuthPrincipal principal)) {
             throw new ServletException("OAuth principal was not mapped to a local account");
         }
-        String code = authenticationService.createOAuthLoginCode(principal.getLocalUser());
-        String redirect = UriComponentsBuilder.fromUriString(properties.getFrontendRedirectUri())
-                .queryParam("code", code)
-                .build()
-                .encode()
-                .toUriString();
+        String redirect;
+        try {
+            String code = authenticationService.createOAuthLoginCode(principal.getLocalUser());
+            UriComponentsBuilder redirectBuilder = UriComponentsBuilder
+                    .fromUriString(properties.getFrontendRedirectUri())
+                    .queryParam("code", code);
+            if (principal.isAccountLinking()) {
+                redirectBuilder
+                        .queryParam("flow", "link")
+                        .queryParam("provider", principal.getProvider().name().toLowerCase(java.util.Locale.ROOT));
+            }
+            redirect = redirectBuilder.build().encode().toUriString();
+        } finally {
+            linkCookieService.clear(request, response);
+        }
         response.sendRedirect(redirect);
     }
 }

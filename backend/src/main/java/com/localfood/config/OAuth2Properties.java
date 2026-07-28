@@ -13,8 +13,8 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "app.oauth2")
 public class OAuth2Properties {
     private String frontendRedirectUri;
-    private boolean autoLinkVerifiedEmail;
     private boolean authorizationCookieSecure = true;
     private Duration authorizationCookieTtl = Duration.ofMinutes(5);
+    private Duration linkIntentTtl = Duration.ofMinutes(5);
     private Duration loginCodeTtl = Duration.ofMinutes(1);
 }
