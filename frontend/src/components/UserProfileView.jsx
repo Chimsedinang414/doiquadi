@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from '../styles/icon';
-import { api, toPostView } from '../services/api';
+import { api, toPostView, updateCurrentUser } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 const copy = {
   loading: '\u0110ang t\u1ea3i trang c\u00e1 nh\u00e2n...',
@@ -29,6 +30,7 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
   const [followPending, setFollowPending] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
+    userName: '',
     fullName: '',
     phoneNumber: '',
     address: '',
@@ -64,7 +66,7 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
     setFollowPending(true);
     setError('');
     try {
-      const result = await api.toggleFollow({ followerId: viewer.id, followingId: profile.id });
+      const result = await api.toggleFollow(profile.id);
       setProfile(previous => ({
         ...previous,
         followedByViewer: result.active,
@@ -101,6 +103,7 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
 
   const openEditModal = () => {
     setEditForm({
+      userName: profile.userName || '',
       fullName: profile.fullName || '',
       phoneNumber: profile.phoneNumber || '',
       address: profile.address || '',
@@ -118,8 +121,10 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
     setEditSubmitting(true);
     try {
       const updatedUser = await api.updateProfile(profile.id, editForm);
+      if (isOwnProfile) updateCurrentUser(updatedUser);
       setProfile(previous => ({
         ...previous,
+        userName: updatedUser.userName,
         fullName: updatedUser.fullName,
         phoneNumber: updatedUser.phoneNumber,
         address: updatedUser.address,
@@ -142,13 +147,13 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
           <div className="ig-profile-avatar">
             {profile.avatar
               ? <img src={profile.avatar} alt={`Avatar ${profile.userName}`} />
-              : <span>{profile.userName?.[0]?.toUpperCase()}</span>}
+              : <span>{getUserInitial(profile)}</span>}
           </div>
         </div>
         <div className="ig-profile-summary">
           <div className="ig-profile-title-row">
-            <h1>{profile.fullName || profile.userName}</h1>
-            {profile.fullName && <span className="profile-handle">@{profile.userName}</span>}
+            <h1>{getUserDisplayName(profile)}</h1>
+            {profile.fullName && <span className="profile-handle">{profile.fullName}</span>}
             {isOwnProfile ? (
               <button className="profile-neutral-button" type="button" onClick={openEditModal}>
                 <Icon name="edit-filled" alt="" className="inline-icon" />
@@ -247,6 +252,14 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
             {editError && <div className="auth-error">{editError}</div>}
 
             <form onSubmit={handleEditSubmit} className="edit-profile-form">
+              <label className="auth-field">
+                <span>Tên người dùng LocalFood</span>
+                <input name="userName" placeholder="Ví dụ: foodie_hanoi" minLength={3} maxLength={50}
+                  pattern="[A-Za-zÀ-ỹ0-9._-]+" required value={editForm.userName}
+                  onChange={e => setEditForm({ ...editForm, userName: e.target.value })} />
+                <small>Tên này được hiển thị trên bài viết, gợi ý bạn bè và trang cá nhân.</small>
+              </label>
+
               <label className="auth-field">
                 <span>Họ và tên</span>
                 <input name="fullName" placeholder="Ví dụ: Nguyễn Văn A" maxLength={100}

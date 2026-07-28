@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, getCurrentUser, toPostView } from '../services/api';
 import Icon from '../styles/icon';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function LocationDetailPage({ locationId, onBack }) {
   const [location, setLocation] = useState(null);
@@ -89,9 +90,9 @@ export default function LocationDetailPage({ locationId, onBack }) {
             {posts.map(post => (
               <div key={post.id} className="review-card">
                 <div className="review-header">
-                  <div className="review-avatar">{post.author?.userName?.[0]?.toUpperCase() || 'U'}</div>
+                  <div className="review-avatar">{getUserInitial(post.author)}</div>
                   <div>
-                    <div className="review-username">{post.author?.userName || 'Người dùng'}</div>
+                    <div className="review-username">{getUserDisplayName(post.author)}</div>
                     <div className="review-stars">★ {post.rating || 'Chưa đánh giá'}</div>
                   </div>
                   <span className="review-time">{post.time}</span>

@@ -26,7 +26,15 @@ public final class SocialDtos {
             List<@Size(max = 100) String> tags) {
     }
 
-    public record UserSummary(String id, String userName, String avatar) {
+    public record UserSummary(String id, String userName, String fullName, String avatar) {
+    }
+
+    public record AccountSearchResponse(
+            String id,
+            String userName,
+            String fullName,
+            String avatar,
+            boolean followedByViewer) {
     }
 
     public record ProfileResponse(
@@ -74,7 +82,7 @@ public final class SocialDtos {
     public record UserActionRequest(@NotBlank String userId) {
     }
 
-    public record FollowRequest(@NotBlank String followerId, @NotBlank String followingId) {
+    public record FollowRequest(@NotBlank String followingId) {
     }
 
     public record FavoriteRequest(@NotBlank String userId, @NotBlank String locationId) {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import Icon from '../styles/icon';
 import { getCurrentUser } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
   const [user, setUser] = useState(getCurrentUser());
@@ -57,10 +58,10 @@ export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
           <div className="lf-sidebar-avatar">
             {user?.avatar
               ? <img src={user.avatar} alt="" />
-              : user?.userName?.[0]?.toUpperCase() || <Icon name="user" alt="" className="avatar-fallback-icon" />}
+              : user ? getUserInitial(user) : <Icon name="user" alt="" className="avatar-fallback-icon" />}
           </div>
           <div>
-            <div className="lf-sidebar-username">{user?.userName || 'Hồ sơ cá nhân'}</div>
+            <div className="lf-sidebar-username">{getUserDisplayName(user, 'Hồ sơ cá nhân')}</div>
             <div className="lf-sidebar-handle">{user?.email || 'Xem hoặc chỉnh sửa hồ sơ'}</div>
           </div>
         </button>

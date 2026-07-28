@@ -11,6 +11,7 @@ import com.localfood.model.User;
 import com.localfood.repository.OAuthLoginCodeRepository;
 import com.localfood.repository.UserRepository;
 import com.localfood.security.JwtService;
+import com.localfood.security.AccountAccessPolicy;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -82,7 +83,7 @@ public class AuthenticationService {
         boolean passwordMatches = passwordEncoder.matches(passwordToCheck, storedHash);
 
         if (invalidBcryptLength || user == null || user.getPassword() == null
-                || !passwordMatches || !user.isEnabled()) {
+                || !passwordMatches || !AccountAccessPolicy.isAllowed(user)) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Email or password is incorrect");
         }
         return issueTokens(user, "Login successful");
@@ -92,7 +93,7 @@ public class AuthenticationService {
     public AuthResponse refresh(String refreshToken) {
         JwtService.TokenData token = jwtService.parseRefreshToken(refreshToken);
         User user = userRepository.findByAuthSubject(token.subject())
-                .filter(User::isEnabled)
+                .filter(AccountAccessPolicy::isAllowed)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Refresh token is invalid"));
         if (user.getCredentialsVersion() != token.credentialsVersion()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Refresh token is invalid");
@@ -118,7 +119,8 @@ public class AuthenticationService {
         OAuthLoginCode code = loginCodeRepository.findByCodeHash(sha256Hex(rawCode))
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_OAUTH_CODE", "OAuth code is invalid or expired"));
         Instant now = Instant.now();
-        if (code.getConsumedAt() != null || !code.getExpiresAt().isAfter(now) || !code.getUser().isEnabled()) {
+        if (code.getConsumedAt() != null || !code.getExpiresAt().isAfter(now)
+                || !AccountAccessPolicy.isAllowed(code.getUser())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_OAUTH_CODE", "OAuth code is invalid or expired");
         }
         code.setConsumedAt(now);

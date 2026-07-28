@@ -27,3 +27,8 @@ INSERT IGNORE INTO user_roles (user_id, role)
 SELECT id, 'ADMIN'
 FROM users
 WHERE email = 'nanhquan831@gmail.com';
+
+INSERT IGNORE INTO user_roles (user_id, role)
+SELECT id, 'SUPER_ADMIN'
+FROM users
+WHERE email = 'nanhquan831@gmail.com';

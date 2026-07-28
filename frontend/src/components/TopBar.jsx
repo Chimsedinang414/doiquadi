@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { MessageCircle, Moon, Sun } from 'lucide-react';
 import Icon from '../styles/icon';
 import { clearAuthSession, getCurrentUser } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNavigate, theme, onThemeToggle }) {
   const [user, setUser] = useState(getCurrentUser());
   const [menuOpen, setMenuOpen] = useState(false);
+  const userLabel = getUserDisplayName(user, 'Tài khoản');
 
   useEffect(() => {
     const refresh = () => setUser(getCurrentUser());
@@ -78,9 +80,9 @@ export default function TopBar({ activePage, onNavigate, onSearchOpen, onAuthNav
         aria-label={'M\u1edf menu t\u00e0i kho\u1ea3n'}
       >
         <span className="auth-user-avatar">
-          {user.avatar ? <img src={user.avatar} alt="" /> : user.userName?.[0]?.toUpperCase()}
+          {user.avatar ? <img src={user.avatar} alt="" /> : getUserInitial(user, 'T')}
         </span>
-        {!compact && <span>{user.userName}</span>}
+        {!compact && <span>{userLabel}</span>}
       </button>
       {menuOpen && (
         <div className="auth-account-popover" role="menu" aria-label={'T\u00f9y ch\u1ecdn t\u00e0i kho\u1ea3n'}>

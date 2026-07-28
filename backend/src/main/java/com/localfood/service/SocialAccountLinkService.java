@@ -60,7 +60,7 @@ public class SocialAccountLinkService {
             );
         } else {
             user = User.builder()
-                    .userName(uniqueUserName(displayName, email, providerSubject))
+                    .userName(uniqueUserName(email, providerSubject))
                     .email(email)
                     .avatar(avatar)
                     .password(null)
@@ -138,11 +138,10 @@ public class SocialAccountLinkService {
         return user;
     }
 
-    private String uniqueUserName(String displayName, String email, String subject) {
+    private String uniqueUserName(String email, String subject) {
         int at = email.indexOf('@');
         String emailName = at > 0 ? email.substring(0, at) : "user";
-        String source = displayName == null || displayName.isBlank() ? emailName : displayName;
-        String base = source.toLowerCase(Locale.ROOT)
+        String base = emailName.toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9._-]", "-")
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");

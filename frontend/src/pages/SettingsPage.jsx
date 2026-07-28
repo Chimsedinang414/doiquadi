@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Icon from '../styles/icon';
 import { api, getCurrentUser, getOAuthAuthorizationUrl } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 const oauthProviders = [
   { id: 'google', label: 'Google' },
@@ -92,9 +93,9 @@ export default function SettingsPage({ onProfileOpen, onAuthNavigate }) {
         <h2>{text.account}</h2>
         <button className="settings-profile-link" type="button" onClick={() => onProfileOpen(user.id)}>
           <span className="settings-avatar">
-            {user.avatar ? <img src={user.avatar} alt="" /> : user.userName?.[0]?.toUpperCase()}
+            {user.avatar ? <img src={user.avatar} alt="" /> : getUserInitial(user)}
           </span>
-          <span><strong>{user.userName}</strong><small>{user.email}</small></span>
+          <span><strong>{getUserDisplayName(user)}</strong><small>{user.email}</small></span>
           <span className="settings-profile-cta">{text.profile} &rsaquo;</span>
         </button>
       </div>

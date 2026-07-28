@@ -62,6 +62,21 @@ public class User {
     @Builder.Default
     private boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", length = 20, nullable = false)
+    @Builder.Default
+    private UserStatus status = UserStatus.ACTIVE;
+
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
+    @Column(name = "moderation_reason", length = 500)
+    private String moderationReason;
+
+    @Column(name = "warning_count", nullable = false)
+    @Builder.Default
+    private int warningCount = 0;
+
     @Column(name = "credentials_version", nullable = false)
     @Builder.Default
     private int credentialsVersion = 0;
@@ -98,6 +113,9 @@ public class User {
         }
         if (roles == null || roles.isEmpty()) {
             roles = new HashSet<>(Set.of(Role.USER));
+        }
+        if (status == null) {
+            status = UserStatus.ACTIVE;
         }
     }
 }

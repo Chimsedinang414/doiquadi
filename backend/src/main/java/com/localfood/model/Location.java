@@ -30,4 +30,9 @@ public class Location {
     private String phone;
     @Column(name = "avg_price", precision = 10, scale = 2)
     private BigDecimal averagePrice;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private LocationStatus status = LocationStatus.PENDING;
+    @Column(name = "moderation_reason", length = 500)
+    private String moderationReason;
 }

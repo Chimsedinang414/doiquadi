@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import Icon from '../styles/icon';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function PostCard({ post, onLike, onSave, onComment }) {
   const [commentText, setCommentText] = useState('');
@@ -41,11 +42,11 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
           <div className="post-avatar" style={gradientStyle}>
             {post.author?.avatar
               ? <img src={post.author.avatar} alt="" />
-              : <span>{post.author?.userName?.[0]?.toUpperCase()
-                || <Icon name="user" alt="" className="avatar-fallback-icon" />}</span>}
+              : <span>{post.author ? getUserInitial(post.author)
+                : <Icon name="user" alt="" className="avatar-fallback-icon" />}</span>}
           </div>
           <div>
-            <div className="post-user-name">{post.author?.userName || post.restaurantName}</div>
+            <div className="post-user-name">{getUserDisplayName(post.author, post.restaurantName)}</div>
             <div className="post-meta">
               <span className="post-meta-location">
                 <Icon name="marker" alt="" className="inline-icon" />
@@ -106,7 +107,7 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
           {post.likes >= 1000 ? `${(post.likes / 1000).toFixed(1)}k lượt thích` : `${post.likes} lượt thích`}
         </div>
         <div className="post-caption">
-          <strong>{post.author?.userName || post.restaurantName}</strong>{' '}
+          <strong>{getUserDisplayName(post.author, post.restaurantName)}</strong>{' '}
           {showMore ? post.description : post.description?.slice(0, 120)}
           {post.description?.length > 120 && (
             <button className="post-caption-more" type="button" onClick={() => setShowMore(previous => !previous)}>

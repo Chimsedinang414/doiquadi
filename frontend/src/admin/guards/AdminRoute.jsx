@@ -1,7 +1,8 @@
 import React from 'react';
 
 export default function AdminRoute({ user, onBack, children }) {
-  if (user?.roles?.includes('ADMIN')) return children;
+  const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'LOCATION_MODERATOR', 'SUPPORT', 'ANALYST'];
+  if (user?.roles?.some(role => adminRoles.includes(role))) return children;
 
   return (
     <main className="admin-access-page">

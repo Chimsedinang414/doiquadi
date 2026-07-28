@@ -5,5 +5,5 @@ import com.localfood.dto.UserResponse;
 
 public interface UserService {
     UserResponse getUserById(String id);
-    UserResponse updateProfile(String id, UpdateProfileRequest request);
+    UserResponse updateProfile(String id, String authSubject, UpdateProfileRequest request);
 }

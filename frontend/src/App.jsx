@@ -3,6 +3,7 @@ import './styles/index.css';
 import './styles/App.css';
 import './styles/Profile.css';
 import './styles/Social.css';
+import './styles/Chat.css';
 import Icon from './styles/icon';
 
 import Sidebar from './components/Sidebar';
@@ -24,6 +25,7 @@ import AdminPanel from './admin/AdminPanel';
 import AdminRoute from './admin/guards/AdminRoute';
 import './admin/styles/admin.css';
 import { api, getCurrentUser } from './services/api';
+import { getUserDisplayName, getUserInitial } from './utils/userDisplay';
 
 const USER_THEME_KEY = 'localfood-user-theme';
 
@@ -57,6 +59,10 @@ export default function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [locations, setLocations] = useState([]);
+  const [accountResults, setAccountResults] = useState([]);
+  const [accountSearchLoading, setAccountSearchLoading] = useState(false);
+  const [accountSearchError, setAccountSearchError] = useState('');
+  const [accountFollowPending, setAccountFollowPending] = useState({});
   const [authMode, setAuthMode] = useState('login');
 
   useEffect(() => {
@@ -76,6 +82,41 @@ export default function App() {
     }
     api.getLocations().then(setLocations).catch(() => setLocations([]));
   }, [authUser]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!authUser || !showSearch || !query) {
+      setAccountResults([]);
+      setAccountSearchLoading(false);
+      setAccountSearchError('');
+      return undefined;
+    }
+
+    let active = true;
+    setAccountResults([]);
+    setAccountSearchLoading(true);
+    setAccountSearchError('');
+    const timer = window.setTimeout(() => {
+      api.searchUsers(query)
+        .then(results => {
+          if (active) setAccountResults(results);
+        })
+        .catch(error => {
+          if (active) {
+            setAccountResults([]);
+            setAccountSearchError(error.message);
+          }
+        })
+        .finally(() => {
+          if (active) setAccountSearchLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [authUser, searchQuery, showSearch]);
 
   useEffect(() => {
     const refreshAuth = () => {
@@ -106,7 +147,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const searchResults = useMemo(() => {
+  const locationSearchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return [];
     return locations.filter(location =>
@@ -119,6 +160,22 @@ export default function App() {
     setProfileUserId(userId || getCurrentUser()?.id || null);
     setPage('profile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleSearchFollow = async user => {
+    if (!user?.id || accountFollowPending[user.id]) return;
+    setAccountFollowPending(previous => ({ ...previous, [user.id]: true }));
+    setAccountSearchError('');
+    try {
+      const result = await api.toggleFollow(user.id);
+      setAccountResults(previous => previous.map(item => item.id === user.id
+        ? { ...item, followedByViewer: result.active }
+        : item));
+    } catch (error) {
+      setAccountSearchError(error.message);
+    } finally {
+      setAccountFollowPending(previous => ({ ...previous, [user.id]: false }));
+    }
   };
 
   const navigate = nextPage => {
@@ -242,21 +299,62 @@ export default function App() {
           <div className="search-panel">
             <div className="search-input-wrap">
               <Icon name="search" alt="" className="search-field-icon" />
-              <input className="search-input" placeholder="Tìm địa điểm..."
+              <input className="search-input" placeholder="Tìm địa điểm hoặc tài khoản..."
                 value={searchQuery} onChange={event => setSearchQuery(event.target.value)} autoFocus />
-              <button onClick={() => setShowSearch(false)}>✕</button>
+              <button onClick={() => setShowSearch(false)} aria-label="Đóng tìm kiếm">✕</button>
             </div>
             <div className="search-results">
-              {searchResults.map(location => (
-                <button key={location.id} className="search-result-item" onClick={() => goToDetail(location.id)}>
-                  <div className="search-result-icon"><Icon name="marker" alt="" /></div>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{location.name}</div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{location.address}</div>
-                  </div>
-                </button>
-              ))}
-              {searchQuery && searchResults.length === 0 && <div style={{ padding: 24 }}>Không tìm thấy địa điểm.</div>}
+              {searchQuery.trim() && (
+                <>
+                  <section className="search-results-section" aria-labelledby="account-results-title">
+                    <h2 id="account-results-title">Tài khoản</h2>
+                    {accountSearchLoading && <div className="search-status">Đang tìm tài khoản...</div>}
+                    {accountSearchError && <div className="search-status error" role="alert">{accountSearchError}</div>}
+                    {accountResults.map(user => (
+                      <div key={user.id} className="search-result-item search-account-result">
+                        <button className="search-account-profile" type="button"
+                          onClick={() => { openProfile(user.id); setShowSearch(false); }}>
+                          <span className="search-account-avatar">
+                            {user.avatar
+                              ? <img src={user.avatar} alt="" />
+                              : getUserInitial(user)}
+                          </span>
+                          <span className="search-account-copy">
+                            <strong>{getUserDisplayName(user)}</strong>
+                            <small>{'@' + user.userName}</small>
+                          </span>
+                        </button>
+                        <button className={'search-follow-button' + (user.followedByViewer ? ' following' : '')}
+                          type="button" disabled={accountFollowPending[user.id]}
+                          onClick={() => toggleSearchFollow(user)}>
+                          {accountFollowPending[user.id]
+                            ? '...'
+                            : user.followedByViewer ? 'Đang theo dõi' : 'Theo dõi'}
+                        </button>
+                      </div>
+                    ))}
+                    {!accountSearchLoading && !accountSearchError && accountResults.length === 0 && (
+                      <div className="search-status">Không có tài khoản phù hợp.</div>
+                    )}
+                  </section>
+
+                  <section className="search-results-section" aria-labelledby="location-results-title">
+                    <h2 id="location-results-title">Địa điểm</h2>
+                    {locationSearchResults.map(location => (
+                      <button key={location.id} className="search-result-item" onClick={() => goToDetail(location.id)}>
+                        <div className="search-result-icon"><Icon name="marker" alt="" /></div>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{location.name}</div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{location.address}</div>
+                        </div>
+                      </button>
+                    ))}
+                    {locationSearchResults.length === 0 && (
+                      <div className="search-status">Không có địa điểm phù hợp.</div>
+                    )}
+                  </section>
+                </>
+              )}
             </div>
           </div>
         </div>

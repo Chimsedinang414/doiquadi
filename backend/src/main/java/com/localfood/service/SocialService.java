@@ -8,6 +8,7 @@ import com.localfood.model.Collection;
 import com.localfood.model.CollectionItem;
 import com.localfood.model.CollectionItemId;
 import com.localfood.model.Comment;
+import com.localfood.model.ContentStatus;
 import com.localfood.model.Favorite;
 import com.localfood.model.FavoriteId;
 import com.localfood.model.Follow;
@@ -38,10 +39,12 @@ import com.localfood.repository.PostTagRepository;
 import com.localfood.repository.TagRepository;
 import com.localfood.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -64,7 +67,8 @@ public class SocialService {
     private final StorageService storageService;
 
     public List<SocialDtos.PostResponse> getPosts() {
-        return postRepository.findAllByOrderByCreatedAtDesc().stream().map(this::toPostResponse).toList();
+        return postRepository.findByStatusOrderByCreatedAtDesc(ContentStatus.ACTIVE)
+                .stream().map(this::toPostResponse).toList();
     }
 
     public SocialDtos.PostResponse getPost(String postId) {
@@ -73,7 +77,8 @@ public class SocialService {
 
     public SocialDtos.ProfileResponse getProfile(String userId, String viewerId) {
         User user = requireUser(userId);
-        List<SocialDtos.PostResponse> posts = postRepository.findByUser_IdOrderByCreatedAtDesc(userId)
+        List<SocialDtos.PostResponse> posts = postRepository
+                .findByUser_IdAndStatusOrderByCreatedAtDesc(userId, ContentStatus.ACTIVE)
                 .stream()
                 .map(this::toPostResponse)
                 .toList();
@@ -98,6 +103,29 @@ public class SocialService {
                 followRepository.countByFollower_Id(userId),
                 followedByViewer,
                 posts);
+    }
+
+    public List<SocialDtos.AccountSearchResponse> searchUsers(String query, String authSubject) {
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        if (normalizedQuery.isEmpty()) {
+            return List.of();
+        }
+
+        User viewer = requireAuthenticatedUser(authSubject);
+        return userRepository.searchDiscoverableUsers(
+                        "%" + normalizedQuery + "%",
+                        normalizedQuery,
+                        normalizedQuery + "%",
+                        viewer.getId(),
+                        PageRequest.of(0, 8))
+                .stream()
+                .map(user -> new SocialDtos.AccountSearchResponse(
+                        user.getId(),
+                        user.getUserName(),
+                        user.getFullName(),
+                        user.getAvatar(),
+                        followRepository.existsById(new FollowId(viewer.getId(), user.getId()))))
+                .toList();
     }
 
     @Transactional
@@ -166,7 +194,7 @@ public class SocialService {
 
     public List<SocialDtos.CommentResponse> getComments(String postId) {
         requirePost(postId);
-        return commentRepository.findByPost_IdOrderByCreatedAtAsc(postId).stream()
+        return commentRepository.findByPost_IdAndStatusOrderByCreatedAtAsc(postId, ContentStatus.ACTIVE).stream()
                 .map(this::toCommentResponse)
                 .toList();
     }
@@ -203,11 +231,11 @@ public class SocialService {
     }
 
     @Transactional
-    public SocialDtos.ActionResponse toggleFollow(SocialDtos.FollowRequest request) {
-        if (request.followerId().equals(request.followingId())) {
+    public SocialDtos.ActionResponse toggleFollow(String authSubject, SocialDtos.FollowRequest request) {
+        User follower = requireAuthenticatedUser(authSubject);
+        if (follower.getId().equals(request.followingId())) {
             throw new AppException("Người dùng không thể tự theo dõi chính mình");
         }
-        User follower = requireUser(request.followerId());
         User following = requireUser(request.followingId());
         FollowId id = new FollowId(follower.getId(), following.getId());
         if (followRepository.existsById(id)) {
@@ -380,7 +408,8 @@ public class SocialService {
     }
 
     private SocialDtos.UserSummary toUserSummary(User user) {
-        return new SocialDtos.UserSummary(user.getId(), user.getUserName(), user.getAvatar());
+        return new SocialDtos.UserSummary(
+                user.getId(), user.getUserName(), user.getFullName(), user.getAvatar());
     }
 
     private SocialDtos.LocationSummary toLocationSummary(Location location) {
@@ -396,12 +425,19 @@ public class SocialService {
         return userRepository.findById(id).orElseThrow(() -> new AppException("Không tìm thấy người dùng"));
     }
 
+    private User requireAuthenticatedUser(String authSubject) {
+        return userRepository.findByAuthSubject(authSubject)
+                .orElseThrow(() -> new AppException("Phiên đăng nhập không hợp lệ"));
+    }
+
     private Location requireLocation(String id) {
         return locationRepository.findById(id).orElseThrow(() -> new AppException("Không tìm thấy địa điểm"));
     }
 
     private Post requirePost(String id) {
-        return postRepository.findById(id).orElseThrow(() -> new AppException("Không tìm thấy bài viết"));
+        return postRepository.findById(id)
+                .filter(post -> post.getStatus() == ContentStatus.ACTIVE)
+                .orElseThrow(() -> new AppException("Không tìm thấy bài viết"));
     }
 
     private Collection requireCollection(String id) {

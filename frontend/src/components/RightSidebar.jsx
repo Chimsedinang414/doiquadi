@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Icon from '../styles/icon';
 import { api } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function RightSidebar({ posts = [], currentUser, onProfileOpen, onAuthRequired }) {
   const [followed, setFollowed] = useState({});
@@ -37,7 +38,7 @@ export default function RightSidebar({ posts = [], currentUser, onProfileOpen, o
     setPending(previous => ({ ...previous, [user.id]: true }));
     setFollowError('');
     try {
-      const result = await api.toggleFollow({ followerId: currentUser.id, followingId: user.id });
+      const result = await api.toggleFollow(user.id);
       setFollowed(previous => ({ ...previous, [user.id]: result.active }));
     } catch (err) {
       setFollowError(err.message);
@@ -53,11 +54,11 @@ export default function RightSidebar({ posts = [], currentUser, onProfileOpen, o
         <div className="profile-card-avatar">
           {currentUser?.avatar
             ? <img src={currentUser.avatar} alt="" />
-            : <span>{currentUser?.userName?.[0]?.toUpperCase()
-              || <Icon name="user" alt="" className="avatar-fallback-icon" />}</span>}
+            : <span>{currentUser ? getUserInitial(currentUser)
+              : <Icon name="user" alt="" className="avatar-fallback-icon" />}</span>}
         </div>
         <div className="profile-card-info">
-          <div className="profile-card-name">{currentUser?.userName || 'Khách'}</div>
+          <div className="profile-card-name">{getUserDisplayName(currentUser, 'Khách')}</div>
           <div className="profile-card-handle">{currentUser?.email || 'Đăng nhập để kết nối'}</div>
         </div>
         {currentUser && <span className="profile-card-open" aria-hidden="true">›</span>}
@@ -76,10 +77,10 @@ export default function RightSidebar({ posts = [], currentUser, onProfileOpen, o
           <div className="suggestion-item" key={user.id} style={{ animationDelay: `${index * 60}ms` }}>
             <button className="suggestion-person" type="button" onClick={() => onProfileOpen(user.id)}>
               <span className="suggestion-avatar">
-                {user.avatar ? <img src={user.avatar} alt="" /> : user.userName?.[0]?.toUpperCase()}
+                {user.avatar ? <img src={user.avatar} alt="" /> : getUserInitial(user)}
               </span>
               <span className="suggestion-info">
-                <strong className="suggestion-name">{user.userName}</strong>
+                <strong className="suggestion-name">{getUserDisplayName(user)}</strong>
                 <small className="suggestion-meta">Có bài viết bạn có thể thích</small>
               </span>
             </button>

@@ -24,10 +24,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateProfile(String id, UpdateProfileRequest request) {
+    public UserResponse updateProfile(String id, String authSubject, UpdateProfileRequest request) {
+        User actor = userRepository.findByAuthSubject(authSubject)
+                .orElseThrow(() -> new AppException("Không tìm thấy tài khoản đăng nhập"));
+        if (!actor.getId().equals(id)) {
+            throw new AppException("Bạn không có quyền chỉnh sửa hồ sơ này");
+        }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("User not found"));
 
+        if (request.getUserName() != null) {
+            String userName = request.getUserName().trim();
+            if (!userName.equalsIgnoreCase(user.getUserName())
+                    && userRepository.existsByUserNameIgnoreCaseAndIdNot(userName, id)) {
+                throw new AppException("Tên người dùng đã được sử dụng");
+            }
+            user.setUserName(userName);
+        }
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName().trim());
         }

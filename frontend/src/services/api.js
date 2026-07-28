@@ -104,7 +104,8 @@ client.interceptors.response.use(response => response, async error => {
 export const api = {
   getPosts: () => client.get('/posts').then(response => response.data),
   getProfile: (userId, viewerId) => client.get('/users/' + userId + '/profile', { params: viewerId ? { viewerId } : {} }).then(response => response.data),
-  toggleFollow: data => client.put('/follows', data).then(response => response.data),
+  searchUsers: query => client.get('/users/search', { params: { query } }).then(response => response.data),
+  toggleFollow: followingId => client.put('/follows', { followingId }).then(response => response.data),
   getPost: id => client.get('/posts/' + id).then(response => response.data),
   createPost: data => client.post('/posts', data).then(response => response.data),
   addComment: (postId, data) => client.post('/posts/' + postId + '/comments', data).then(response => response.data),
@@ -127,6 +128,18 @@ export const api = {
   startOAuthLink: provider => client.post(`/oauth2/links/${encodeURIComponent(provider)}/start`)
     .then(response => response.data),
   updateProfile: (userId, data) => client.put('/users/' + userId, data).then(response => response.data),
+
+  // ── Messaging ───────────────────────────────────────────────
+  getMutualFollows: userId => client.get('/messaging/mutual-follows', { params: { userId } }).then(r => r.data),
+  getConversations: userId => client.get('/messaging/conversations', { params: { userId } }).then(r => r.data),
+  createDirectConversation: data => client.post('/messaging/conversations/direct', data).then(r => r.data),
+  createGroup: data => client.post('/messaging/conversations/group', data).then(r => r.data),
+  getMessages: (conversationId, userId, page = 0) => client.get(`/messaging/conversations/${conversationId}/messages`, { params: { userId, page } }).then(r => r.data),
+  sendMessage: (conversationId, data) => client.post(`/messaging/conversations/${conversationId}/messages`, data).then(r => r.data),
+  addMembers: (conversationId, data) => client.post(`/messaging/conversations/${conversationId}/members`, data).then(r => r.data),
+  removeMember: (conversationId, userId, targetUserId) => client.delete(`/messaging/conversations/${conversationId}/members/${targetUserId}`, { params: { userId } }).then(r => r.data),
+  updateGroup: (conversationId, userId, data) => client.put(`/messaging/conversations/${conversationId}`, data, { params: { userId } }).then(r => r.data),
+  markAsRead: (conversationId, userId) => client.put(`/messaging/conversations/${conversationId}/read`, null, { params: { userId } }).then(r => r.data),
 };
 
 export function getOAuthAuthorizationUrl(provider) {
@@ -160,6 +173,13 @@ export function getCurrentUser() {
   } catch {
     return null;
   }
+}
+
+export function updateCurrentUser(user) {
+  const currentUser = getCurrentUser();
+  if (!currentUser || !user || currentUser.id !== user.id) return;
+  sessionStorage.setItem(USER_KEY, JSON.stringify({ ...currentUser, ...user }));
+  window.dispatchEvent(new Event('auth-changed'));
 }
 
 export function toPostView(post) {

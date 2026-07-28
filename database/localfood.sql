@@ -7,6 +7,10 @@ CREATE TABLE users (
     email VARCHAR(254) NOT NULL UNIQUE,
     password_hash VARCHAR(255),
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    account_status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    suspended_until DATETIME(6),
+    moderation_reason VARCHAR(500),
+    warning_count INT NOT NULL DEFAULT 0,
     credentials_version INT NOT NULL DEFAULT 0,
     avatar_url VARCHAR(500),
     bio TEXT,
@@ -84,7 +88,9 @@ CREATE TABLE locations (
     open_time TIME,
     close_time TIME,
     phone VARCHAR(20),
-    avg_price DECIMAL(10, 2)
+    avg_price DECIMAL(10, 2),
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    moderation_reason VARCHAR(500)
 );
 
 CREATE TRIGGER before_insert_locations
@@ -100,6 +106,8 @@ CREATE TABLE posts (
     title VARCHAR(255) NOT NULL,
     content TEXT,
     rating FLOAT CHECK (rating >= 0 AND rating <= 5),
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    moderation_reason VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL
@@ -141,7 +149,9 @@ CREATE TABLE foods (
     id CHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    image_url VARCHAR(500)
+    image_url VARCHAR(500),
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    moderation_reason VARCHAR(500)
 );
 
 CREATE TRIGGER before_insert_foods
@@ -181,6 +191,8 @@ CREATE TABLE comments (
     post_id CHAR(36) NOT NULL,
     user_id CHAR(36) NOT NULL,
     content TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    moderation_reason VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -274,4 +286,34 @@ CREATE TABLE admin_audit_logs (
     INDEX idx_admin_audit_created (created_at),
     INDEX idx_admin_audit_actor (actor_user_id),
     CONSTRAINT fk_admin_audit_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE reports (
+    id CHAR(36) PRIMARY KEY,
+    reporter_id CHAR(36) NOT NULL,
+    target_type VARCHAR(30) NOT NULL,
+    target_id VARCHAR(64) NOT NULL,
+    reason VARCHAR(50) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    assigned_admin_id CHAR(36),
+    resolution_note TEXT,
+    resolution_action VARCHAR(20),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    resolved_at DATETIME(6),
+    FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_admin_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE user_violations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    admin_id CHAR(36) NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    expires_at DATETIME(6),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_id) REFERENCES users(id)
 );

@@ -1,5 +1,6 @@
 package com.localfood.security;
 
+import com.localfood.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +19,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -31,7 +33,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 JwtService.TokenData token = jwtService.parseAccessToken(authorization.substring(7));
-                var authorities = token.roles().stream()
+                var user = userRepository.findByAuthSubject(token.subject())
+                        .filter(AccountAccessPolicy::isAllowed)
+                        .filter(account -> account.getCredentialsVersion() == token.credentialsVersion())
+                        .orElseThrow();
+                var authorities = user.getRoles().stream()
+                        .map(Enum::name)
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                         .toList();
                 var authentication = UsernamePasswordAuthenticationToken.authenticated(

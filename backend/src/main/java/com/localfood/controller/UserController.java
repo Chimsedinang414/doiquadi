@@ -5,6 +5,7 @@ import com.localfood.dto.UserResponse;
 import com.localfood.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,7 +21,8 @@ public class UserController {
     @PutMapping("/users/{id}")
     public UserResponse updateProfile(
             @PathVariable String id,
-            @Valid @RequestBody UpdateProfileRequest request) {
-        return userService.updateProfile(id, request);
+            @Valid @RequestBody UpdateProfileRequest request,
+            Authentication authentication) {
+        return userService.updateProfile(id, authentication.getName(), request);
     }
 }

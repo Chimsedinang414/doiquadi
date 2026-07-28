@@ -5,6 +5,7 @@ import com.localfood.dto.LocationResponse;
 import com.localfood.exception.AppException;
 import com.localfood.model.Location;
 import com.localfood.model.LocationImage;
+import com.localfood.model.LocationStatus;
 import com.localfood.repository.LocationImageRepository;
 import com.localfood.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,13 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public List<LocationResponse> findAll() {
-        return locationRepository.findAll().stream().map(this::toResponse).toList();
+        return locationRepository.findByStatusOrderByNameAsc(LocationStatus.VERIFIED)
+                .stream().map(this::toResponse).toList();
     }
 
     @Override
     public LocationResponse findById(String id) {
-        return toResponse(requireLocation(id));
+        return toResponse(requireVisibleLocation(id));
     }
 
     @Override
@@ -73,6 +75,14 @@ public class LocationServiceImpl implements LocationService {
     private Location requireLocation(String id) {
         return locationRepository.findById(id)
                 .orElseThrow(() -> new AppException("Không tìm thấy địa điểm"));
+    }
+
+    private Location requireVisibleLocation(String id) {
+        Location location = requireLocation(id);
+        if (location.getStatus() != LocationStatus.VERIFIED) {
+            throw new AppException("Không tìm thấy địa điểm");
+        }
+        return location;
     }
 
 

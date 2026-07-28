@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../styles/icon';
 import { api, uploadImage } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 const MAX_IMAGES = 4;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -162,9 +163,9 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
               <span className="create-post-avatar">
                 {currentUser.avatar
                   ? <img src={currentUser.avatar} alt="" />
-                  : currentUser.userName?.[0]?.toUpperCase()}
+                  : getUserInitial(currentUser)}
               </span>
-              <strong>{currentUser.userName}</strong>
+              <strong>{getUserDisplayName(currentUser)}</strong>
             </div>
 
             {error && <div className="create-post-error" role="alert">{error}</div>}

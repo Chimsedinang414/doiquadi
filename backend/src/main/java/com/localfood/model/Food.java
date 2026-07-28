@@ -26,4 +26,11 @@ public class Food {
     private String description;
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private FoodStatus status = FoodStatus.ACTIVE;
+
+    @Column(name = "moderation_reason", length = 500)
+    private String moderationReason;
 }

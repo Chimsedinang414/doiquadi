@@ -5,6 +5,7 @@ import RightSidebar from '../components/RightSidebar';
 import CreatePostModal from '../components/CreatePostModal';
 import Icon from '../styles/icon';
 import { api, getCurrentUser, toPostView } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function HomePage({ onProfileOpen, onAuthNavigate }) {
   const [posts, setPosts] = useState([]);
@@ -102,10 +103,10 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
         <button className="home-compose-prompt" type="button" onClick={openComposer}>
           <span className="home-compose-avatar">
             {currentUser?.avatar ? <img src={currentUser.avatar} alt="" />
-              : currentUser?.userName?.[0]?.toUpperCase() || <Icon name="user" alt="" />}
+              : currentUser ? getUserInitial(currentUser) : <Icon name="user" alt="" />}
           </span>
           <span className="home-compose-copy">
-            <strong>{currentUser ? `Chào ${currentUser.userName}` : 'Chia sẻ cùng LocalFood'}</strong>
+            <strong>{currentUser ? `Chào ${getUserDisplayName(currentUser)}` : 'Chia sẻ cùng LocalFood'}</strong>
             <small>Bạn vừa khám phá món ngon nào?</small>
           </span>
           <Icon name="picture" alt="" className="home-compose-picture" />

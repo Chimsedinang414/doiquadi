@@ -15,12 +15,14 @@ spring:
   sql:
     init:
       # This legacy schema is not Flyway-managed. Idempotent initializers run
-      # before Hibernate validation and only create security support tables.
+      # before Hibernate validation and create feature support tables.
       mode: ${SQL_INIT_MODE:always}
       schema-locations:
         - classpath:db/schema/oauth-link-intents.sql
         - classpath:db/schema/password-reset-tokens.sql
         - classpath:db/schema/admin-audit-logs.sql
+        - classpath:db/schema/admin-moderation-tables.sql
+        - classpath:db/schema/messaging.sql
 
   mail:
     host: ${MAIL_HOST:localhost}

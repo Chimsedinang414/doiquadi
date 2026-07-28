@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, setAuthSession } from '../services/api';
 import Icon from '../styles/icon';
+import { getUserDisplayName } from '../utils/userDisplay';
 
 const exchanges = new Map();
 
@@ -54,8 +55,8 @@ export default function OAuthCallbackPage({ onComplete, onRetry }) {
         setState({
           status: 'success',
           message: flow === 'link'
-            ? `Đã liên kết ${providerName} với tài khoản ${result.user.userName}.`
-            : `Xin chào ${result.user.userName}!`,
+            ? `Đã liên kết ${providerName} với tài khoản ${getUserDisplayName(result.user)}.`
+            : `Xin chào ${getUserDisplayName(result.user)}!`,
         });
         redirectTimer = window.setTimeout(
           () => onComplete(flow === 'link' ? 'settings' : 'home'),

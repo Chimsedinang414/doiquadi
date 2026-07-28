@@ -3,10 +3,13 @@ import AdminLayout from './layout/AdminLayout';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminPostsPage from './pages/AdminPostsPage';
+import AdminCommentsPage from './pages/AdminCommentsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
 import AdminLocationsPage from './pages/AdminLocationsPage';
+import AdminDishesPage from './pages/AdminDishesPage';
 import AdminAuditPage from './pages/AdminAuditPage';
 
-const SECTIONS = new Set(['dashboard', 'users', 'posts', 'locations', 'audit']);
+const SECTIONS = new Set(['dashboard', 'users', 'posts', 'comments', 'reports', 'locations', 'dishes', 'audit']);
 
 function initialSection() {
   const candidate = window.location.pathname.split('/')[2];
@@ -28,7 +31,10 @@ export default function AdminPanel({ user, onExit }) {
     dashboard: <AdminDashboardPage user={user} />,
     users: <AdminUsersPage currentUser={user} />,
     posts: <AdminPostsPage />,
+    comments: <AdminCommentsPage />,
+    reports: <AdminReportsPage />,
     locations: <AdminLocationsPage />,
+    dishes: <AdminDishesPage />,
     audit: <AdminAuditPage />,
   };
   return <AdminLayout section={section} onSectionChange={changeSection} user={user} onExit={onExit}>
