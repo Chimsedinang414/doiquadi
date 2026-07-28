@@ -56,6 +56,22 @@ Không lưu mật khẩu database trực tiếp vào source code.
 
 Backend mặc định chạy tại http://localhost:8080/api.
 
+### Upload ảnh với R2/S3
+
+Ảnh được upload trực tiếp từ trình duyệt lên object storage bằng presigned URL.
+Backend chỉ tạo URL tạm thời, xác nhận object và lưu URL CDN/khóa object trong MySQL.
+
+Sao chép các biến trong `.env.example` vào môi trường chạy backend. Với Cloudflare R2:
+
+- `STORAGE_ENDPOINT`: endpoint S3 API của tài khoản R2.
+- `STORAGE_BUCKET`: tên bucket.
+- `STORAGE_ACCESS_KEY` và `STORAGE_SECRET_KEY`: API token giới hạn trong bucket.
+- `STORAGE_PUBLIC_BASE_URL`: custom domain hoặc public development URL dùng để hiển thị ảnh.
+- `STORAGE_ENABLED=true`: bật upload sau khi đã điền đủ cấu hình.
+
+Bucket phải cho phép CORS `PUT`, `GET`, `HEAD` từ domain frontend và header
+`Content-Type`. Không đưa access key hoặc secret key vào frontend.
+
 Chạy kiểm thử backend:
 
     mvn test

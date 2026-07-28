@@ -1,32 +1,119 @@
 spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   application:
     name: LocalFood Backend
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/doiquadi}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:142857}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  sql:
+    init:
+      # This legacy schema is not Flyway-managed. Idempotent initializers run
+      # before Hibernate validation and create feature support tables.
+      mode: ${SQL_INIT_MODE:always}
+      schema-locations:
+        - classpath:db/schema/oauth-link-intents.sql
+        - classpath:db/schema/password-reset-tokens.sql
+        - classpath:db/schema/admin-audit-logs.sql
+        - classpath:db/schema/admin-moderation-tables.sql
+        - classpath:db/schema/messaging.sql
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_STARTTLS_ENABLE:true}
+            required: ${MAIL_STARTTLS_REQUIRED:true}
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
 
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
         format_sql: true
 
-  devtools:
-    restart:
-      exclude: static/**,public/**
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid,profile,email
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            scope: email,public_profile
+        provider:
+          apple:
+            issuer-uri: https://appleid.apple.com
+            user-name-attribute: sub
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   servlet:
     context-path: /api
+  forward-headers-strategy: framework
 
 logging:
   level:
     root: INFO
-    com.localfood: DEBUG
+    com.localfood: ${APP_LOG_LEVEL:INFO}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  jwt:
+    # Base64-encoded random value containing at least 32 bytes.
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER:localfood-api}
+    audience: ${JWT_AUDIENCE:localfood-web}
+    access-token-ttl: ${JWT_ACCESS_TTL:PT15M}
+    refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
+  oauth2:
+    frontend-redirect-uri: ${OAUTH2_FRONTEND_REDIRECT_URI:http://localhost:3000/oauth2/callback}
+    authorization-cookie-secure: ${OAUTH2_COOKIE_SECURE:false}
+    authorization-cookie-ttl: ${OAUTH2_COOKIE_TTL:PT5M}
+    link-intent-ttl: ${OAUTH2_LINK_INTENT_TTL:PT5M}
+    login-code-ttl: ${OAUTH2_LOGIN_CODE_TTL:PT1M}
+  password-reset:
+    enabled: ${PASSWORD_RESET_ENABLED:false}
+    frontend-reset-uri: ${PASSWORD_RESET_FRONTEND_URI:http://localhost:3000/reset-password}
+    mail-from: ${PASSWORD_RESET_MAIL_FROM:${MAIL_USERNAME:}}
+    token-ttl: ${PASSWORD_RESET_TOKEN_TTL:PT15M}
+    resend-cooldown: ${PASSWORD_RESET_RESEND_COOLDOWN:PT1M}
+  apple:
+    team-id: ${APPLE_TEAM_ID:unconfigured}
+    key-id: ${APPLE_KEY_ID:unconfigured}
+    client-id: ${APPLE_CLIENT_ID:unconfigured}
+    # PKCS#8 P-256 private key, PEM text or Base64 DER. Never commit the .p8 file.
+    private-key: ${APPLE_PRIVATE_KEY:unconfigured}
+    client-secret-ttl: ${APPLE_CLIENT_SECRET_TTL:PT5M}
+  storage:
+    enabled: ${STORAGE_ENABLED:false}
+    endpoint: ${STORAGE_ENDPOINT:}
+    region: ${STORAGE_REGION:auto}
+    bucket: ${STORAGE_BUCKET:}
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:}
+    path-style-access: ${STORAGE_PATH_STYLE:true}
+    presign-seconds: ${STORAGE_PRESIGN_SECONDS:300}
+    max-file-size: ${STORAGE_MAX_FILE_SIZE:10485760}

@@ -20,7 +20,6 @@ import org.hibernate.annotations.UuidGenerator;
 @NoArgsConstructor
 public class Collection {
     @Id
-    @GeneratedValue
     @UuidGenerator
     @Column(length = 36, updatable = false, nullable = false)
     private String id;

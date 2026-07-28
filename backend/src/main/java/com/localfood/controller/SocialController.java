@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,8 +26,16 @@ public class SocialController {
 
     @PutMapping("/follows")
     public SocialDtos.ActionResponse toggleFollow(
-            @Valid @RequestBody SocialDtos.FollowRequest request) {
-        return socialService.toggleFollow(request);
+            @Valid @RequestBody SocialDtos.FollowRequest request,
+            Authentication authentication) {
+        return socialService.toggleFollow(authentication.getName(), request);
+    }
+
+    @GetMapping("/users/search")
+    public List<SocialDtos.AccountSearchResponse> searchUsers(
+            @RequestParam String query,
+            Authentication authentication) {
+        return socialService.searchUsers(query, authentication.getName());
     }
 
     @GetMapping("/users/{userId}/profile")

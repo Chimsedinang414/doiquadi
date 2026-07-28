@@ -1,13 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import StoryBar from '../components/StoryBar';
 import PostCard from '../components/PostCard';
 import RightSidebar from '../components/RightSidebar';
+import CreatePostModal from '../components/CreatePostModal';
+import Icon from '../styles/icon';
 import { api, getCurrentUser, toPostView } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
-export default function HomePage() {
+export default function HomePage({ onProfileOpen, onAuthNavigate }) {
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const loadMoreRef = useRef(null);
   const currentUser = getCurrentUser();
 
   useEffect(() => {
@@ -16,6 +22,26 @@ export default function HomePage() {
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const visiblePosts = useMemo(() => posts.slice(0, visibleCount), [posts, visibleCount]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || visibleCount >= posts.length) return undefined;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting) setVisibleCount(previous => Math.min(previous + 4, posts.length));
+    }, { rootMargin: '240px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [posts.length, visibleCount]);
+
+  const openComposer = () => {
+    if (!currentUser?.id) {
+      onAuthNavigate?.('login');
+      return;
+    }
+    setComposerOpen(true);
+  };
 
   const requireUser = () => {
     if (!currentUser?.id) {
@@ -44,9 +70,7 @@ export default function HomePage() {
     if (!userId || !post?.locationId) return;
     try {
       const result = await api.toggleFavorite({ userId, locationId: post.locationId });
-      setPosts(previous => previous.map(item => item.id === postId
-        ? { ...item, saved: result.active }
-        : item));
+      setPosts(previous => previous.map(item => item.id === postId ? { ...item, saved: result.active } : item));
     } catch (err) {
       setError(err.message);
     }
@@ -65,29 +89,61 @@ export default function HomePage() {
     }
   };
 
+  const handleCreated = created => {
+    setPosts(previous => [toPostView(created), ...previous]);
+    setVisibleCount(previous => previous + 1);
+    setComposerOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="lf-home" id="home-page">
-      <div>
+      <div className="home-feed-column">
         <StoryBar posts={posts} />
-        {error && <div style={{ padding: 16, color: '#c5221f' }}>{error}</div>}
+        <button className="home-compose-prompt" type="button" onClick={openComposer}>
+          <span className="home-compose-avatar">
+            {currentUser?.avatar ? <img src={currentUser.avatar} alt="" />
+              : currentUser ? getUserInitial(currentUser) : <Icon name="user" alt="" />}
+          </span>
+          <span className="home-compose-copy">
+            <strong>{currentUser ? `Chào ${getUserDisplayName(currentUser)}` : 'Chia sẻ cùng LocalFood'}</strong>
+            <small>Bạn vừa khám phá món ngon nào?</small>
+          </span>
+          <Icon name="picture" alt="" className="home-compose-picture" />
+        </button>
+
+        {error && <div className="home-feed-error" role="alert">{error}</div>}
         <div className="lf-feed">
-          {loading && <div style={{ padding: 32, textAlign: 'center' }}>Đang tải bài viết...</div>}
+          {loading && <div className="feed-state">Đang tải bài viết...</div>}
           {!loading && posts.length === 0 && !error && (
-            <div style={{ padding: 32, textAlign: 'center' }}>Chưa có bài viết nào.</div>
+            <div className="feed-state empty">
+              <Icon name="picture" alt="" />
+              <strong>Chưa có bài viết nào</strong>
+              <button type="button" onClick={openComposer}>Tạo bài viết đầu tiên</button>
+            </div>
           )}
-          {posts.map((post, index) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLike={handleLike}
-              onSave={handleSave}
-              onComment={handleComment}
-              style={{ animationDelay: String(index * 0.08) + 's' }}
-            />
+          {visiblePosts.map(post => (
+            <PostCard key={post.id} post={post} onLike={handleLike} onSave={handleSave}
+              onComment={handleComment} />
           ))}
+          <div ref={loadMoreRef} className="feed-load-sentinel" aria-live="polite">
+            {visibleCount < posts.length
+              ? <><span className="feed-loader" /> Đang tải thêm...</>
+              : posts.length > 0 && <span>Bạn đã xem hết bài viết mới.</span>}
+          </div>
         </div>
       </div>
-      <RightSidebar posts={posts} currentUser={currentUser} />
+
+      <RightSidebar posts={posts} currentUser={currentUser} onProfileOpen={onProfileOpen}
+        onAuthRequired={() => onAuthNavigate?.('login')} />
+      <button className="floating-create-post" type="button" onClick={openComposer}
+        aria-label="Tạo bài viết mới" title="Tạo bài viết mới">
+        <Icon name="edit-filled" alt="" />
+      </button>
+      {composerOpen && currentUser && (
+        <CreatePostModal currentUser={currentUser} onClose={() => setComposerOpen(false)}
+          onCreated={handleCreated} />
+      )}
     </div>
   );
 }

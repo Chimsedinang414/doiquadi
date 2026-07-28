@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -25,7 +27,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Post {
     @Id
-    @GeneratedValue
     @UuidGenerator
     @Column(length = 36, updatable = false, nullable = false)
     private String id;
@@ -47,6 +48,13 @@ public class Post {
     @DecimalMin("0.0")
     @DecimalMax("5.0")
     private Float rating;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ContentStatus status = ContentStatus.ACTIVE;
+
+    @Column(name = "moderation_reason", length = 500)
+    private String moderationReason;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, getCurrentUser, toPostView } from '../services/api';
+import Icon from '../styles/icon';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function LocationDetailPage({ locationId, onBack }) {
   const [location, setLocation] = useState(null);
@@ -50,10 +52,15 @@ export default function LocationDetailPage({ locationId, onBack }) {
 
       <div className="detail-hero">
         <div className="detail-hero-main" style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '5rem' }}>🍽️</span>
-            <span style={{ color: 'white', fontWeight: 700, fontSize: '1.2rem' }}>{location.name}</span>
-          </div>
+          {location.imageUrls?.[0] ? (
+            <img src={location.imageUrls[0]} alt={location.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="picture" alt="" className="detail-placeholder-icon" />
+              <span style={{ color: 'white', fontWeight: 700, fontSize: '1.2rem' }}>{location.name}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -61,17 +68,21 @@ export default function LocationDetailPage({ locationId, onBack }) {
         <div className="detail-info">
           <h1 className="detail-title">{location.name}</h1>
           <div className="detail-meta-row">
-            <span className="detail-badge">⭐ {averageRating}</span>
+            <span className="detail-badge">★ {averageRating}</span>
             {location.averagePrice && (
-              <span className="detail-badge">💰 {Number(location.averagePrice).toLocaleString('vi-VN')}đ</span>
+              <span className="detail-badge">{Number(location.averagePrice).toLocaleString('vi-VN')}đ</span>
             )}
           </div>
           <div className="detail-actions-row">
             <button className="btn-outline" onClick={toggleSave}>
-              {saved ? '🔖 Đã lưu' : '📑 Lưu'}
+              <Icon name="bookmark" alt="" className="inline-icon" />
+              {saved ? 'Đã lưu' : 'Lưu'}
             </button>
           </div>
-          <div className="detail-address">📍 {location.address || 'Chưa có địa chỉ'}</div>
+          <div className="detail-address">
+            <Icon name="marker" alt="" className="inline-icon" />
+            {location.address || 'Chưa có địa chỉ'}
+          </div>
 
           <div className="reviews-section">
             <h2>Bài viết tại địa điểm ({posts.length})</h2>
@@ -79,10 +90,10 @@ export default function LocationDetailPage({ locationId, onBack }) {
             {posts.map(post => (
               <div key={post.id} className="review-card">
                 <div className="review-header">
-                  <div className="review-avatar">{post.author?.userName?.[0]?.toUpperCase() || 'U'}</div>
+                  <div className="review-avatar">{getUserInitial(post.author)}</div>
                   <div>
-                    <div className="review-username">{post.author?.userName || 'Người dùng'}</div>
-                    <div className="review-stars">⭐ {post.rating || 'Chưa đánh giá'}</div>
+                    <div className="review-username">{getUserDisplayName(post.author)}</div>
+                    <div className="review-stars">★ {post.rating || 'Chưa đánh giá'}</div>
                   </div>
                   <span className="review-time">{post.time}</span>
                 </div>
@@ -95,9 +106,12 @@ export default function LocationDetailPage({ locationId, onBack }) {
         <div className="detail-sidebar">
           <div className="detail-sidebar-card">
             <div className="sidebar-card-title">Thông tin</div>
-            <p>🕐 {location.openTime || '--:--'} – {location.closeTime || '--:--'}</p>
-            <p>📞 {location.phone || 'Chưa có'}</p>
-            <p>📍 {location.latitude ?? '-'}, {location.longitude ?? '-'}</p>
+            <p><strong>Giờ mở:</strong> {location.openTime || '--:--'} – {location.closeTime || '--:--'}</p>
+            <p><strong>Điện thoại:</strong> {location.phone || 'Chưa có'}</p>
+            <p className="detail-coordinate">
+              <Icon name="thumbtack" alt="" className="inline-icon" />
+              {location.latitude ?? '-'}, {location.longitude ?? '-'}
+            </p>
           </div>
         </div>
       </div>

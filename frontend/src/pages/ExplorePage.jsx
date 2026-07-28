@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import Icon from '../styles/icon';
 
 export default function ExplorePage({ onNavigateToDetail }) {
   const [locations, setLocations] = useState([]);
@@ -19,7 +20,7 @@ export default function ExplorePage({ onNavigateToDetail }) {
   return (
     <div className="lf-explore" id="explore-page">
       <div className="explore-search-bar">
-        <span>🔍</span>
+        <Icon name="search" alt="" className="search-field-icon" />
         <input
           type="text"
           placeholder="Tìm quán ăn hoặc địa chỉ..."
@@ -37,10 +38,14 @@ export default function ExplorePage({ onNavigateToDetail }) {
             onClick={() => onNavigateToDetail?.(location.id)}
             title={location.name}
           >
-            <div className="explore-img explore-placeholder"
-              style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
-              <span style={{ fontSize: '3.5rem' }}>🍽️</span>
-            </div>
+            {location.imageUrls?.[0] ? (
+              <img className="explore-img" src={location.imageUrls[0]} alt={location.name} />
+            ) : (
+              <div className="explore-img explore-placeholder"
+                style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b)' }}>
+                <Icon name="picture" alt="" className="grid-placeholder-icon" />
+              </div>
+            )}
             <div className="explore-overlay">
               <span>{location.name}</span>
               <span>{location.averagePrice ? Number(location.averagePrice).toLocaleString('vi-VN') + 'đ' : ''}</span>

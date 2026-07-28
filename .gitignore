@@ -60,3 +60,6 @@ Desktop.ini
 env
 /*env
 
+# Keep safe configuration templates under version control
+!.env.example
+!**/.env.example

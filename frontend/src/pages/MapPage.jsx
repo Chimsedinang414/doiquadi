@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { api } from '../services/api';
+import Icon from '../styles/icon';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -18,7 +19,7 @@ function LocateButton() {
         position => map.flyTo([position.coords.latitude, position.coords.longitude], 15),
         () => alert('Không thể lấy vị trí của bạn')
       )}>
-      📍
+      <Icon name="marker" alt="" className="locate-button-icon" />
     </button>
   );
 }
@@ -44,7 +45,7 @@ export default function MapPage({ onNavigateToDetail }) {
     <div className="lf-map-page" id="map-page">
       <div className="map-controls">
         <div className="map-search">
-          <span>🔍</span>
+          <Icon name="search" alt="" className="search-field-icon" />
           <input value={search} onChange={event => setSearch(event.target.value)}
             placeholder="Tìm quán ăn trên bản đồ..." />
         </div>

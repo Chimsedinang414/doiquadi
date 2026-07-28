@@ -29,6 +29,9 @@ public class PostImage {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    @Column(name = "image_url", length = 500, nullable = false)
+    @Column(name = "storage_key", length = 1024)
+    private String storageKey;
+
+    @Column(name = "image_url", length = 1000, nullable = false)
     private String imageUrl;
 }

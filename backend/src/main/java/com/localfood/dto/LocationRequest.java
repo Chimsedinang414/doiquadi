@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 
 public record LocationRequest(
         @NotBlank @Size(max = 255) String name,
@@ -15,5 +16,7 @@ public record LocationRequest(
         LocalTime openTime,
         LocalTime closeTime,
         @Size(max = 20) String phone,
-        @DecimalMin("0.0") BigDecimal averagePrice) {
+        @DecimalMin("0.0") BigDecimal averagePrice,
+        String userId,
+        List<@Size(max = 1024) String> imageKeys) {
 }

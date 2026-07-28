@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,16 +22,30 @@ public final class SocialDtos {
             String content,
             @DecimalMin("0.0") @DecimalMax("5.0") Float rating,
             List<@Size(max = 500) String> imageUrls,
+            List<@Size(max = 1024) String> imageKeys,
             List<@Size(max = 100) String> tags) {
     }
 
-    public record UserSummary(String id, String userName, String avatar) {
+    public record UserSummary(String id, String userName, String fullName, String avatar) {
+    }
+
+    public record AccountSearchResponse(
+            String id,
+            String userName,
+            String fullName,
+            String avatar,
+            boolean followedByViewer) {
     }
 
     public record ProfileResponse(
             String id,
             String userName,
+            String fullName,
+            String email,
+            String phoneNumber,
             String avatar,
+            String address,
+            LocalDate dateOfBirth,
             String bio,
             LocalDateTime createdAt,
             long postsCount,
@@ -67,7 +82,7 @@ public final class SocialDtos {
     public record UserActionRequest(@NotBlank String userId) {
     }
 
-    public record FollowRequest(@NotBlank String followerId, @NotBlank String followingId) {
+    public record FollowRequest(@NotBlank String followingId) {
     }
 
     public record FavoriteRequest(@NotBlank String userId, @NotBlank String locationId) {

@@ -4,6 +4,7 @@ import com.localfood.dto.FoodRequest;
 import com.localfood.dto.FoodResponse;
 import com.localfood.exception.AppException;
 import com.localfood.model.Food;
+import com.localfood.model.FoodStatus;
 import com.localfood.repository.FoodRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,12 +20,17 @@ public class FoodServiceImpl implements FoodService {
 
     @Override
     public List<FoodResponse> findAll() {
-        return foodRepository.findAll().stream().map(this::toResponse).toList();
+        return foodRepository.findByStatusOrderByNameAsc(FoodStatus.ACTIVE)
+                .stream().map(this::toResponse).toList();
     }
 
     @Override
     public FoodResponse findById(String id) {
-        return toResponse(requireFood(id));
+        Food food = requireFood(id);
+        if (food.getStatus() != FoodStatus.ACTIVE) {
+            throw new AppException("Không tìm thấy món ăn");
+        }
+        return toResponse(food);
     }
 
     @Override

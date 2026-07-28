@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import Icon from '../styles/icon';
 import { getCurrentUser } from '../services/api';
+import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 
 export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
   const [user, setUser] = useState(getCurrentUser());
@@ -22,20 +24,29 @@ export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
     { id: 'add', icon: 'plus', label: 'Thêm quán' },
     { id: 'saved', icon: 'bookmark', label: 'Đã lưu' },
     { id: 'notifications', icon: 'envelope', label: 'Thông báo' },
+    { id: 'chat', icon: 'chat', label: 'Chat' },
   ];
+
+  const visibleNavItems = user?.roles?.includes('ADMIN')
+    ? [...navItems, { id: 'admin', icon: 'settings', label: 'Quản trị' }]
+    : navItems;
 
   return (
     <nav className="lf-sidebar" aria-label="Điều hướng chính">
       <div className="lf-logo">
-        <div className="lf-logo-icon"><Icon name="home" alt="LocalFood" className="lf-logo-icon-svg" /></div>
+        <div className="lf-logo-icon"><Icon name="localfood" alt="LocalFood" className="lf-logo-icon-svg lf-app-logo" /></div>
         <span className="lf-logo-text">LocalFood</span>
       </div>
       <div className="lf-nav">
-        {navItems.map(item => (
+        {visibleNavItems.map(item => (
           <button key={item.id}
             className={'lf-nav-item ' + (activePage === item.id ? 'active' : '')}
             onClick={() => onNavigate(item.id)}>
-            <span className="lf-nav-icon"><Icon name={item.icon} alt="" className="nav-item-icon" /></span>
+            <span className="lf-nav-icon">
+              {item.icon === 'chat'
+                ? <MessageCircle className="nav-item-lucide-icon" aria-hidden="true" />
+                : <Icon name={item.icon} alt="" className="nav-item-icon" />}
+            </span>
             <span className="lf-nav-label">{item.label}</span>
           </button>
         ))}
@@ -47,10 +58,10 @@ export default function Sidebar({ activePage, onNavigate, onProfileOpen }) {
           <div className="lf-sidebar-avatar">
             {user?.avatar
               ? <img src={user.avatar} alt="" />
-              : user?.userName?.[0]?.toUpperCase() || '👤'}
+              : user ? getUserInitial(user) : <Icon name="user" alt="" className="avatar-fallback-icon" />}
           </div>
           <div>
-            <div className="lf-sidebar-username">{user?.userName || 'Hồ sơ cá nhân'}</div>
+            <div className="lf-sidebar-username">{getUserDisplayName(user, 'Hồ sơ cá nhân')}</div>
             <div className="lf-sidebar-handle">{user?.email || 'Xem hoặc chỉnh sửa hồ sơ'}</div>
           </div>
         </button>

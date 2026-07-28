@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1024"
+     height="1024"
+     viewBox="0 0 1024 1024"
+     fill="none"
+     role="img"
+     aria-labelledby="title description">
+  <title id="title">LocalFood mobile app icon</title>
+  <desc id="description">
+    Rounded orange app icon with a white location pin containing a food bowl,
+    rising steam, and a fresh green leaf.
+  </desc>
+
+  <defs>
+    <linearGradient id="background" x1="146" y1="92" x2="886" y2="936"
+                    gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB12B"/>
+      <stop offset="0.56" stop-color="#FF8A00"/>
+      <stop offset="1" stop-color="#F56A00"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="512" y1="384" x2="699" y2="253"
+                    gradientUnits="userSpaceOnUse">
+      <stop stop-color="#268A36"/>
+      <stop offset="1" stop-color="#59C943"/>
+    </linearGradient>
+    <filter id="shadow" x="164" y="142" width="716" height="760"
+            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="24"
+                    flood-color="#A83E00" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded-square canvas suitable for iOS and Android launchers. -->
+  <rect width="1024" height="1024" rx="224" fill="url(#background)"/>
+
+  <!-- All essential artwork stays inside the central safe zone. -->
+  <g filter="url(#shadow)">
+    <path d="M512 170C329.2 170 190 308.7 190 482.4C190 670.5 404.8 808.1 480.6 856.7C499.7 869 524.3 869 543.4 856.7C619.2 808.1 834 670.5 834 482.4C834 308.7 694.8 170 512 170Z"
+          fill="#FFFFFF"/>
+  </g>
+
+  <!-- Steam: thick and simple so it remains legible at small sizes. -->
+  <path d="M430 450C471 405 400 372 447 306"
+        stroke="#FF8A00" stroke-width="36" stroke-linecap="round"/>
+  <path d="M520 442C561 397 494 359 543 291"
+        stroke="#FF8A00" stroke-width="32" stroke-linecap="round"/>
+
+  <!-- Leaf adds the fresh/local cue. -->
+  <path d="M516 452C538 356 605 300 710 296C711 389 645 450 516 452Z"
+        fill="url(#leaf)"/>
+  <path d="M525 442C573 393 624 350 687 312"
+        stroke="#18762B" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Bowl: a reduced, high-contrast silhouette for launcher-size clarity. -->
+  <ellipse cx="512" cy="522" rx="190" ry="55" fill="#FFE6C5"/>
+  <ellipse cx="512" cy="522" rx="150" ry="36" fill="#FF8A00"/>
+  <path d="M310 524C310 512.4 319.4 503 331 503H693C704.6 503 714 512.4 714 524C714 629.5 629.5 715 525 715H499C394.5 715 310 629.5 310 524Z"
+        fill="#FF8A00"/>
+  <path d="M379 696H645L622 738H402L379 696Z" fill="#FF8A00"/>
+
+  <!-- Small highlight keeps the icon lively without adding fine detail. -->
+  <path d="M262 365C301 291 369 237 449 215"
+        stroke="#FFFFFF" stroke-opacity="0.32" stroke-width="24"
+        stroke-linecap="round"/>
+</svg>
