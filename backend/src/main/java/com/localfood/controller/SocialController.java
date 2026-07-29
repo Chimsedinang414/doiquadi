@@ -38,6 +38,20 @@ public class SocialController {
         return socialService.searchUsers(query, authentication.getName());
     }
 
+    @GetMapping("/users/{userId}/followers")
+    public List<SocialDtos.FollowUserResponse> getFollowers(
+            @PathVariable String userId,
+            Authentication authentication) {
+        return socialService.getFollowers(userId, authentication.getName());
+    }
+
+    @GetMapping("/users/{userId}/following")
+    public List<SocialDtos.FollowUserResponse> getFollowing(
+            @PathVariable String userId,
+            Authentication authentication) {
+        return socialService.getFollowing(userId, authentication.getName());
+    }
+
     @GetMapping("/users/{userId}/profile")
     public SocialDtos.ProfileResponse getProfile(
             @PathVariable String userId,

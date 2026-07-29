@@ -18,6 +18,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SignedCookieAuthorizationRequestRepositoryTest {
     private SignedCookieAuthorizationRequestRepository repository;
@@ -64,12 +65,52 @@ class SignedCookieAuthorizationRequestRepositoryTest {
         repository.saveAuthorizationRequest(request(), originalRequest, originalResponse);
         Cookie cookie = responseCookie(originalResponse);
         String value = cookie.getValue();
-        cookie.setValue(value.substring(0, value.length() - 1)
-                + (value.endsWith("A") ? "B" : "A"));
+        cookie.setValue((value.startsWith("A") ? "B" : "A") + value.substring(1));
         MockHttpServletRequest callback = new MockHttpServletRequest();
         callback.setCookies(cookie);
 
         assertNull(repository.loadAuthorizationRequest(callback));
+    }
+
+    @Test
+    void staleCallbackDoesNotClearNewerAuthorizationRequest() {
+        MockHttpServletRequest originalRequest = new MockHttpServletRequest();
+        originalRequest.setContextPath("/api");
+        MockHttpServletResponse originalResponse = new MockHttpServletResponse();
+        repository.saveAuthorizationRequest(request(), originalRequest, originalResponse);
+
+        Cookie cookie = responseCookie(originalResponse);
+        MockHttpServletRequest staleCallback = new MockHttpServletRequest();
+        staleCallback.setContextPath("/api");
+        staleCallback.setCookies(cookie);
+        staleCallback.setParameter("state", "older-state");
+        MockHttpServletResponse callbackResponse = new MockHttpServletResponse();
+
+        OAuth2AuthorizationRequest loaded =
+                repository.removeAuthorizationRequest(staleCallback, callbackResponse);
+
+        assertEquals("random-state", loaded.getState());
+        assertNull(callbackResponse.getHeader("Set-Cookie"));
+    }
+
+    @Test
+    void matchingCallbackConsumesAuthorizationRequest() {
+        MockHttpServletRequest originalRequest = new MockHttpServletRequest();
+        originalRequest.setContextPath("/api");
+        MockHttpServletResponse originalResponse = new MockHttpServletResponse();
+        repository.saveAuthorizationRequest(request(), originalRequest, originalResponse);
+
+        MockHttpServletRequest callback = new MockHttpServletRequest();
+        callback.setContextPath("/api");
+        callback.setCookies(responseCookie(originalResponse));
+        callback.setParameter("state", "random-state");
+        MockHttpServletResponse callbackResponse = new MockHttpServletResponse();
+
+        OAuth2AuthorizationRequest loaded =
+                repository.removeAuthorizationRequest(callback, callbackResponse);
+
+        assertEquals("random-state", loaded.getState());
+        assertTrue(callbackResponse.getHeader("Set-Cookie").contains("Max-Age=0"));
     }
 
     private static OAuth2AuthorizationRequest request() {

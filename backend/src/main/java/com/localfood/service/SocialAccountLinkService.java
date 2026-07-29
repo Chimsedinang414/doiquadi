@@ -25,7 +25,7 @@ public class SocialAccountLinkService {
             AuthProvider provider,
             String providerSubject,
             String emailValue,
-            String displayName,
+            boolean emailVerified,
             String avatar
     ) {
         if (providerSubject == null || providerSubject.isBlank()) {
@@ -52,8 +52,9 @@ public class SocialAccountLinkService {
             if (!user.isEnabled()) {
                 throw oauthError("ACCOUNT_DISABLED", "This account is disabled");
             }
-            // Even a provider-verified email is not sufficient proof that the visitor
-            // controls this existing LocalFood account. Linking must be initiated there.
+            if (provider == AuthProvider.GOOGLE && emailVerified) {
+                return linkExisting(user, provider, providerSubject, email);
+            }
             throw oauthError(
                     "ACCOUNT_LINKING_REQUIRED",
                     "An account already uses this email. Sign in to that account before linking this provider"

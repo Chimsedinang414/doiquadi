@@ -19,11 +19,19 @@ const copy = {
   emptyOwn: 'Chia s\u1ebb qu\u00e1n ngon \u0111\u1ea7u ti\u00ean c\u1ee7a b\u1ea1n v\u1edbi c\u1ed9ng \u0111\u1ed3ng.',
   emptyOther: 'Ng\u01b0\u1eddi d\u00f9ng n\u00e0y ch\u01b0a \u0111\u0103ng b\u00e0i vi\u1ebft n\u00e0o.',
   loginToFollow: 'B\u1ea1n c\u1ea7n \u0111\u0103ng nh\u1eadp \u0111\u1ec3 theo d\u00f5i ng\u01b0\u1eddi n\u00e0y.',
+  followersTitle: 'Ng\u01b0\u1eddi theo d\u00f5i',
+  followingTitle: '\u0110ang theo d\u00f5i',
+  searchPeople: 'T\u00ecm ki\u1ebfm',
+  loadingPeople: '\u0110ang t\u1ea3i danh s\u00e1ch...',
+  emptyFollowers: 'Ch\u01b0a c\u00f3 ng\u01b0\u1eddi theo d\u00f5i.',
+  emptyFollowing: 'Ch\u01b0a theo d\u00f5i ai.',
+  noSearchResults: 'Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n ph\u00f9 h\u1ee3p.',
+  close: '\u0110\u00f3ng',
 };
 
 const formatCount = value => new Intl.NumberFormat('vi-VN').format(value || 0);
 
-export default function UserProfileView({ userId, viewer, onNavigateToDetail, onSettings }) {
+export default function UserProfileView({ userId, viewer, onNavigateToDetail, onProfileOpen, onSettings }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,6 +48,12 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState('');
+  const [connectionType, setConnectionType] = useState(null);
+  const [connectionUsers, setConnectionUsers] = useState([]);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState('');
+  const [connectionQuery, setConnectionQuery] = useState('');
+  const [connectionPending, setConnectionPending] = useState(new Set());
 
   const loadProfile = useCallback(() => {
     if (!userId) return;
@@ -55,8 +69,29 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
     loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => {
+    setConnectionType(null);
+    setConnectionUsers([]);
+    setConnectionQuery('');
+  }, [userId]);
+
+  useEffect(() => {
+    if (!connectionType) return undefined;
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') setConnectionType(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [connectionType]);
+
   const posts = useMemo(() => (profile?.posts || []).map(toPostView), [profile]);
   const isOwnProfile = Boolean(viewer?.id && viewer.id === profile?.id);
+  const filteredConnectionUsers = useMemo(() => {
+    const query = connectionQuery.trim().toLocaleLowerCase('vi-VN');
+    if (!query) return connectionUsers;
+    return connectionUsers.filter(user => [user.fullName, user.userName]
+      .some(value => String(value || '').toLocaleLowerCase('vi-VN').includes(query)));
+  }, [connectionQuery, connectionUsers]);
 
   const toggleFollow = async () => {
     if (!viewer?.id) {
@@ -76,6 +111,57 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
       setError(err.message);
     } finally {
       setFollowPending(false);
+    }
+  };
+
+  const openConnections = async type => {
+    setConnectionType(type);
+    setConnectionUsers([]);
+    setConnectionQuery('');
+    setConnectionError('');
+    setConnectionLoading(true);
+    try {
+      const users = type === 'followers'
+        ? await api.getFollowers(profile.id)
+        : await api.getFollowing(profile.id);
+      setConnectionUsers(users);
+    } catch (err) {
+      setConnectionError(err.message);
+    } finally {
+      setConnectionLoading(false);
+    }
+  };
+
+  const openConnectionProfile = connectionUserId => {
+    setConnectionType(null);
+    onProfileOpen?.(connectionUserId);
+  };
+
+  const toggleConnectionFollow = async connectionUser => {
+    setConnectionPending(previous => new Set(previous).add(connectionUser.id));
+    setConnectionError('');
+    try {
+      const result = await api.toggleFollow(connectionUser.id);
+      const removeFromOwnFollowing = connectionType === 'following' && isOwnProfile && !result.active;
+      setConnectionUsers(previous => removeFromOwnFollowing
+        ? previous.filter(user => user.id !== connectionUser.id)
+        : previous.map(user => user.id === connectionUser.id
+          ? { ...user, followedByViewer: result.active }
+          : user));
+      if (removeFromOwnFollowing) {
+        setProfile(previous => ({
+          ...previous,
+          followingCount: Math.max(0, previous.followingCount - 1),
+        }));
+      }
+    } catch (err) {
+      setConnectionError(err.message);
+    } finally {
+      setConnectionPending(previous => {
+        const next = new Set(previous);
+        next.delete(connectionUser.id);
+        return next;
+      });
     }
   };
 
@@ -153,7 +239,7 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
         <div className="ig-profile-summary">
           <div className="ig-profile-title-row">
             <h1>{getUserDisplayName(profile)}</h1>
-            {profile.fullName && <span className="profile-handle">{profile.fullName}</span>}
+            <span className="profile-handle">@{profile.userName}</span>
             {isOwnProfile ? (
               <button className="profile-neutral-button" type="button" onClick={openEditModal}>
                 <Icon name="edit-filled" alt="" className="inline-icon" />
@@ -174,11 +260,15 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
           </div>
           <div className="ig-profile-stats" aria-label={'Thống kê trang cá nhân'}>
             <span><strong>{formatCount(profile.postsCount)}</strong> {copy.posts}</span>
-            <span><strong>{formatCount(profile.followersCount)}</strong> {copy.followers}</span>
-            <span><strong>{formatCount(profile.followingCount)}</strong> {copy.followingCount}</span>
+            <button className="profile-stat-button" type="button" onClick={() => openConnections('followers')}>
+              <strong>{formatCount(profile.followersCount)}</strong> {copy.followers}
+            </button>
+            <button className="profile-stat-button" type="button" onClick={() => openConnections('following')}>
+              <strong>{formatCount(profile.followingCount)}</strong> {copy.followingCount}
+            </button>
           </div>
           <div className="ig-profile-bio">
-            <strong>{profile.fullName ? `${profile.fullName} (@${profile.userName})` : profile.userName}</strong>
+            <strong>{getUserDisplayName(profile)}</strong>
             <p>{profile.bio || copy.noBio}</p>
             <div className="profile-details-list">
               {profile.phoneNumber && (
@@ -241,6 +331,64 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
         </div>
       )}
 
+      {connectionType && (
+        <div className="profile-connections-backdrop" onMouseDown={() => setConnectionType(null)}>
+          <section className="profile-connections-card" role="dialog" aria-modal="true"
+            aria-labelledby="profile-connections-title" onMouseDown={event => event.stopPropagation()}>
+            <header className="profile-connections-header">
+              <h2 id="profile-connections-title">
+                {connectionType === 'followers' ? copy.followersTitle : copy.followingTitle}
+              </h2>
+              <button type="button" className="profile-connections-close" onClick={() => setConnectionType(null)}
+                aria-label={copy.close}>&times;</button>
+            </header>
+            <div className="profile-connections-search">
+              <Icon name="search" alt="" />
+              <input type="search" value={connectionQuery} placeholder={copy.searchPeople}
+                onChange={event => setConnectionQuery(event.target.value)} autoFocus />
+            </div>
+            {connectionError && <div className="profile-connections-error" role="alert">{connectionError}</div>}
+            <div className="profile-connections-list">
+              {connectionLoading ? (
+                <div className="profile-connections-status">
+                  <span className="profile-loading-ring" />
+                  <p>{copy.loadingPeople}</p>
+                </div>
+              ) : filteredConnectionUsers.length ? filteredConnectionUsers.map(connectionUser => (
+                <div className="profile-connection-row" key={connectionUser.id}>
+                  <button className="profile-connection-person" type="button"
+                    onClick={() => openConnectionProfile(connectionUser.id)}>
+                    <span className="profile-connection-avatar">
+                      {connectionUser.avatar
+                        ? <img src={connectionUser.avatar} alt="" />
+                        : getUserInitial(connectionUser)}
+                    </span>
+                    <span className="profile-connection-identity">
+                      <strong>{getUserDisplayName(connectionUser)}</strong>
+                      <small>@{connectionUser.userName}</small>
+                    </span>
+                  </button>
+                  {viewer?.id !== connectionUser.id && (
+                    <button type="button"
+                      className={'profile-connection-follow' + (connectionUser.followedByViewer ? ' following' : '')}
+                      disabled={connectionPending.has(connectionUser.id)}
+                      onClick={() => toggleConnectionFollow(connectionUser)}>
+                      {connectionUser.followedByViewer ? copy.following : copy.follow}
+                    </button>
+                  )}
+                </div>
+              )) : (
+                <div className="profile-connections-status">
+                  <p>{connectionQuery
+                    ? copy.noSearchResults
+                    : connectionType === 'followers' ? copy.emptyFollowers : copy.emptyFollowing}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
       {showEditModal && (
         <div className="edit-profile-modal-backdrop" onClick={() => setShowEditModal(false)}>
           <div className="edit-profile-modal-card" onClick={event => event.stopPropagation()}>
@@ -257,13 +405,14 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
                 <input name="userName" placeholder="Ví dụ: foodie_hanoi" minLength={3} maxLength={50}
                   pattern="[A-Za-zÀ-ỹ0-9._-]+" required value={editForm.userName}
                   onChange={e => setEditForm({ ...editForm, userName: e.target.value })} />
-                <small>Tên này được hiển thị trên bài viết, gợi ý bạn bè và trang cá nhân.</small>
+                <small>Định danh duy nhất của bạn, được hiển thị dưới dạng @username.</small>
               </label>
 
               <label className="auth-field">
-                <span>Họ và tên</span>
+                <span>Tên hiển thị</span>
                 <input name="fullName" placeholder="Ví dụ: Nguyễn Văn A" maxLength={100}
                   value={editForm.fullName} onChange={e => setEditForm({ ...editForm, fullName: e.target.value })} />
+                <small>Tên này được ưu tiên trên bài viết, gợi ý bạn bè, chat và trang cá nhân.</small>
               </label>
 
               <label className="auth-field">

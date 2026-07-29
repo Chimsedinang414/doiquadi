@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { api, setAuthSession } from '../services/api';
+import { api, getOAuthAuthorizationUrl, setAuthSession } from '../services/api';
 import Icon from '../styles/icon';
 import { getUserDisplayName } from '../utils/userDisplay';
 
 const exchanges = new Map();
+const directRetryErrors = new Set([
+  'AUTHORIZATION_REQUEST_NOT_FOUND',
+  'INVALID_STATE_PARAMETER',
+  'INVALID_ID_TOKEN',
+]);
 
 function exchangeOnce(code) {
   if (!exchanges.has(code)) {
@@ -23,6 +28,12 @@ const oauthErrors = {
   OAUTH_EMAIL_REQUIRED: 'Nhà cung cấp không chia sẻ email. Vui lòng chọn phương thức đăng nhập khác.',
   ACCOUNT_DISABLED: 'Tài khoản này hiện đã bị vô hiệu hóa.',
   ACCESS_DENIED: 'Bạn đã hủy hoặc từ chối yêu cầu đăng nhập.',
+  AUTHORIZATION_REQUEST_NOT_FOUND: 'Phiên đăng nhập Google đã bị mất hoặc hết hạn. Hãy mở LocalFood bằng http://localhost:3000 rồi thử lại.',
+  INVALID_STATE_PARAMETER: 'Phiên đăng nhập Google không còn hợp lệ. Vui lòng thử lại từ màn hình đăng nhập.',
+  INVALID_NONCE: 'Google trả về phiên xác thực không hợp lệ. Vui lòng thử lại.',
+  INVALID_TOKEN_RESPONSE: 'Backend không thể đổi mã xác thực với Google. Hãy kiểm tra lại Google Client Secret.',
+  INVALID_CLIENT: 'Google Client ID hoặc Client Secret không hợp lệ.',
+  INVALID_ID_TOKEN: 'Đồng hồ hệ thống đang sai nên Google ID Token chưa hợp lệ. Hãy đồng bộ ngày giờ Windows rồi thử lại.',
   OAUTH2_AUTHENTICATION_FAILED: 'Không thể xác thực với nhà cung cấp. Vui lòng thử lại.',
 };
 
@@ -33,6 +44,18 @@ export default function OAuthCallbackPage({ onComplete, onRetry }) {
   const flow = params.get('flow');
   const provider = params.get('provider');
   const [state, setState] = useState({ status: 'loading', message: 'Đang hoàn tất đăng nhập an toàn…' });
+
+  const canRetryProvider = flow !== 'link' && directRetryErrors.has(providerError);
+
+  const retry = () => {
+    if (canRetryProvider) {
+      const retryProvider = provider === 'facebook' ? 'facebook' : 'google';
+      window.history.replaceState({}, document.title, '/');
+      window.location.replace(getOAuthAuthorizationUrl(retryProvider));
+      return;
+    }
+    onRetry(flow === 'link' ? 'settings' : 'login');
+  };
 
   useEffect(() => {
     let active = true;
@@ -90,8 +113,10 @@ export default function OAuthCallbackPage({ onComplete, onRetry }) {
         <p>{state.message}</p>
         {state.status === 'error' && (
           <button type="button" className="auth-submit oauth-retry"
-            onClick={() => onRetry(flow === 'link' ? 'settings' : 'login')}>
-            {flow === 'link' ? 'Quay lại Cài đặt' : 'Quay lại đăng nhập'}
+            onClick={retry}>
+            {canRetryProvider
+              ? `Thử lại với ${provider === 'facebook' ? 'Facebook' : 'Google'}`
+              : flow === 'link' ? 'Quay lại Cài đặt' : 'Quay lại đăng nhập'}
           </button>
         )}
       </section>

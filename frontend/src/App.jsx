@@ -236,7 +236,7 @@ export default function App() {
       case 'notifications': return <NotificationsPage />;
       case 'chat': return <ChatPage />;
       case 'profile': return <ProfilePage initialMode={authMode} profileUserId={profileUserId}
-        onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')}
+        onNavigateToDetail={goToDetail} onProfileOpen={openProfile} onSettings={() => navigate('settings')}
         onForgotPassword={openForgotPassword} />;
       case 'settings': return <SettingsPage onProfileOpen={openProfile}
         onAuthNavigate={openAuth} />;
@@ -278,7 +278,7 @@ export default function App() {
     return (
       <div className="auth-gate-app">
         <ProfilePage initialMode={authMode} profileUserId={null}
-          onNavigateToDetail={goToDetail} onSettings={() => navigate('settings')}
+          onNavigateToDetail={goToDetail} onProfileOpen={openProfile} onSettings={() => navigate('settings')}
           onForgotPassword={openForgotPassword} />
       </div>
     );

@@ -37,6 +37,14 @@ public final class SocialDtos {
             boolean followedByViewer) {
     }
 
+    public record FollowUserResponse(
+            String id,
+            String userName,
+            String fullName,
+            String avatar,
+            boolean followedByViewer) {
+    }
+
     public record ProfileResponse(
             String id,
             String userName,
