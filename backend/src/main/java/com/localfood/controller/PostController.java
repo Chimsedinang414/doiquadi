@@ -40,6 +40,13 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(socialService.createPost(request));
     }
 
+    @PutMapping("/{postId}")
+    public ResponseEntity<SocialDtos.PostResponse> update(
+            @PathVariable String postId,
+            @Valid @RequestBody SocialDtos.UpdatePostRequest request) {
+        return ResponseEntity.ok(socialService.updatePost(postId, request));
+    }
+
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> delete(
             @PathVariable String postId, @RequestParam String userId) {

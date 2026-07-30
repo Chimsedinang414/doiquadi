@@ -78,6 +78,41 @@ class SocialServiceTest {
         assertEquals(target, followCaptor.getValue().getFollowing());
     }
 
+    @Test
+    void getFollowersReturnsInternalProfileDataAndViewerFollowState() {
+        User viewer = user("viewer-id", "viewer", "Người xem");
+        User follower = user("follower-id", "minh.nguyen", "Minh Nguyễn");
+        when(userRepository.findById("profile-id")).thenReturn(Optional.of(user(
+                "profile-id", "profile", "Chủ hồ sơ")));
+        when(userRepository.findByAuthSubject("viewer-subject")).thenReturn(Optional.of(viewer));
+        when(followRepository.findFollowers("profile-id")).thenReturn(List.of(follower));
+        when(followRepository.existsById(new FollowId("viewer-id", "follower-id"))).thenReturn(true);
+
+        List<SocialDtos.FollowUserResponse> results =
+                socialService.getFollowers("profile-id", "viewer-subject");
+
+        assertEquals(1, results.size());
+        assertEquals("Minh Nguyễn", results.get(0).fullName());
+        assertEquals("minh.nguyen", results.get(0).userName());
+        assertTrue(results.get(0).followedByViewer());
+    }
+
+    @Test
+    void getFollowingDoesNotMarkViewerAsFollowedByThemselves() {
+        User viewer = user("viewer-id", "viewer", "Người xem");
+        when(userRepository.findById("profile-id")).thenReturn(Optional.of(user(
+                "profile-id", "profile", "Chủ hồ sơ")));
+        when(userRepository.findByAuthSubject("viewer-subject")).thenReturn(Optional.of(viewer));
+        when(followRepository.findFollowing("profile-id")).thenReturn(List.of(viewer));
+
+        List<SocialDtos.FollowUserResponse> results =
+                socialService.getFollowing("profile-id", "viewer-subject");
+
+        assertEquals(1, results.size());
+        assertEquals("viewer-id", results.get(0).id());
+        assertEquals(false, results.get(0).followedByViewer());
+    }
+
     private static User user(String id, String userName, String fullName) {
         User user = new User();
         user.setId(id);

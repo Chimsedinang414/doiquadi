@@ -128,6 +128,22 @@ public class SocialService {
                 .toList();
     }
 
+    public List<SocialDtos.FollowUserResponse> getFollowers(String userId, String authSubject) {
+        requireUser(userId);
+        User viewer = requireAuthenticatedUser(authSubject);
+        return followRepository.findFollowers(userId).stream()
+                .map(user -> toFollowUserResponse(user, viewer))
+                .toList();
+    }
+
+    public List<SocialDtos.FollowUserResponse> getFollowing(String userId, String authSubject) {
+        requireUser(userId);
+        User viewer = requireAuthenticatedUser(authSubject);
+        return followRepository.findFollowing(userId).stream()
+                .map(user -> toFollowUserResponse(user, viewer))
+                .toList();
+    }
+
     @Transactional
     public SocialDtos.PostResponse createPost(SocialDtos.CreatePostRequest request) {
         User user = requireUser(request.userId());
@@ -180,6 +196,33 @@ public class SocialService {
                     .distinct()
                     .forEach(name -> attachTag(savedPost, name));
         }
+        return toPostResponse(savedPost);
+    }
+
+    @Transactional
+    public SocialDtos.PostResponse updatePost(String postId, SocialDtos.UpdatePostRequest request) {
+        Post post = requirePost(postId);
+        if (!post.getUser().getId().equals(request.userId())) {
+            throw new AppException("Bạn không có quyền chỉnh sửa bài viết này");
+        }
+        Location location = request.locationId() == null || request.locationId().isBlank()
+                ? null : requireLocation(request.locationId());
+
+        post.setLocation(location);
+        post.setTitle(request.title().trim());
+        post.setContent(request.content());
+        post.setRating(request.rating());
+        Post savedPost = postRepository.save(post);
+
+        postTagRepository.deleteAll(postTagRepository.findByPost_Id(post.getId()));
+        if (request.tags() != null) {
+            request.tags().stream()
+                    .filter(name -> name != null && !name.isBlank())
+                    .map(this::normalizeTag)
+                    .distinct()
+                    .forEach(name -> attachTag(savedPost, name));
+        }
+
         return toPostResponse(savedPost);
     }
 
@@ -410,6 +453,13 @@ public class SocialService {
     private SocialDtos.UserSummary toUserSummary(User user) {
         return new SocialDtos.UserSummary(
                 user.getId(), user.getUserName(), user.getFullName(), user.getAvatar());
+    }
+
+    private SocialDtos.FollowUserResponse toFollowUserResponse(User user, User viewer) {
+        boolean followedByViewer = !viewer.getId().equals(user.getId())
+                && followRepository.existsById(new FollowId(viewer.getId(), user.getId()));
+        return new SocialDtos.FollowUserResponse(
+                user.getId(), user.getUserName(), user.getFullName(), user.getAvatar(), followedByViewer);
     }
 
     private SocialDtos.LocationSummary toLocationSummary(Location location) {

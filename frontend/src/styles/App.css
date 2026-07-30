@@ -415,21 +415,51 @@
 /* ── POST IMAGE ── */
 .post-img-wrap {
   position: relative;
-  aspect-ratio: 1;
   overflow: hidden;
   background: var(--border-light);
-  cursor: pointer;
 }
 
-.post-img-wrap img {
+.post-img-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.post-img-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.post-main-image {
+  flex: 0 0 100%;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 4 / 5;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  scroll-snap-align: center;
 }
 
-.post-img-wrap:hover img {
-  transform: scale(1.02);
+.post-carousel-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.post-carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: background 0.2s ease;
+}
+
+.post-carousel-dot.active {
+  background: #fff;
 }
 
 .post-img-placeholder {

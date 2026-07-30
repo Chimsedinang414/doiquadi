@@ -31,14 +31,13 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         Map<String, Object> attributes = providerUser.getAttributes();
         String subject = stringValue(attributes.get("id"));
         String email = stringValue(attributes.get("email"));
-        String name = stringValue(attributes.get("name"));
         String avatar = facebookPicture(attributes);
 
         String linkToken = linkCookieService.read(servletRequest);
         boolean accountLinking = linkToken != null;
         var localUser = accountLinking
                 ? linkIntentService.complete(linkToken, provider, subject, email)
-                : accountLinkService.resolve(provider, subject, email, name, avatar);
+                : accountLinkService.resolve(provider, subject, email, false, avatar);
         return new LocalOAuth2User(providerUser, localUser, provider, accountLinking);
     }
 

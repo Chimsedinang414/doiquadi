@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const OAUTH_BASE_URL = import.meta.env.VITE_OAUTH_BASE_URL
+  || (import.meta.env.DEV ? 'http://localhost:8080/api' : API_BASE_URL);
 const USER_KEY = 'localfoodUser';
 const REFRESH_TOKEN_KEY = 'localfoodRefreshToken';
 
@@ -105,9 +107,12 @@ export const api = {
   getPosts: () => client.get('/posts').then(response => response.data),
   getProfile: (userId, viewerId) => client.get('/users/' + userId + '/profile', { params: viewerId ? { viewerId } : {} }).then(response => response.data),
   searchUsers: query => client.get('/users/search', { params: { query } }).then(response => response.data),
+  getFollowers: userId => client.get('/users/' + userId + '/followers').then(response => response.data),
+  getFollowing: userId => client.get('/users/' + userId + '/following').then(response => response.data),
   toggleFollow: followingId => client.put('/follows', { followingId }).then(response => response.data),
   getPost: id => client.get('/posts/' + id).then(response => response.data),
   createPost: data => client.post('/posts', data).then(response => response.data),
+  updatePost: (postId, data) => client.put('/posts/' + postId, data).then(response => response.data),
   addComment: (postId, data) => client.post('/posts/' + postId + '/comments', data).then(response => response.data),
   toggleLike: (postId, userId) => client.put('/posts/' + postId + '/like', { userId }).then(response => response.data),
   getLocations: () => client.get('/locations').then(response => response.data),
@@ -143,7 +148,7 @@ export const api = {
 };
 
 export function getOAuthAuthorizationUrl(provider) {
-  return `${API_BASE_URL}/oauth2/authorization/${encodeURIComponent(provider)}`;
+  return `${OAUTH_BASE_URL.replace(/\/$/, '')}/oauth2/authorization/${encodeURIComponent(provider)}`;
 }
 
 export async function uploadImage(file, userId, onProgress) {
@@ -201,6 +206,7 @@ export function toPostView(post) {
     locationId: post.location?.id,
     author: post.author,
     imageUrl: post.imageUrls?.[0],
+    imageUrls: post.imageUrls || [],
     colors: ['#f58529', '#dd2a7b'],
   };
 }

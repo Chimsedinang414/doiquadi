@@ -105,8 +105,28 @@ public class SignedCookieAuthorizationRequestRepository
             HttpServletResponse response
     ) {
         OAuth2AuthorizationRequest authorizationRequest = loadAuthorizationRequest(request);
-        expireCookie(request, response);
+        if (authorizationRequest == null) {
+            expireCookie(request, response);
+            return null;
+        }
+
+        // A stale callback can arrive after the user has already started a newer
+        // OAuth attempt. Do not let that old state delete the newer request.
+        // Spring Security will reject the stale callback as invalid_state_parameter,
+        // while the matching callback can still complete normally.
+        if (stateMatches(authorizationRequest.getState(), request.getParameter("state"))) {
+            expireCookie(request, response);
+        }
         return authorizationRequest;
+    }
+
+    private boolean stateMatches(String expected, String supplied) {
+        if (expected == null || supplied == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                supplied.getBytes(StandardCharsets.UTF_8));
     }
 
     private String cookieValue(HttpServletRequest request) {

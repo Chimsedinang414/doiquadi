@@ -34,6 +34,7 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         Map<String, Object> claims = providerUser.getClaims();
         String subject = stringValue(claims.get("sub"));
         String email = stringValue(claims.get("email"));
+        boolean emailVerified = booleanValue(claims.get("email_verified"));
         String linkToken = linkCookieService.read(servletRequest);
         boolean accountLinking = linkToken != null;
         var localUser = accountLinking
@@ -42,7 +43,7 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
                         provider,
                         subject,
                         email,
-                        stringValue(claims.get("name")),
+                        emailVerified,
                         stringValue(claims.get("picture"))
                 );
         return new LocalOidcUser(providerUser, localUser, provider, accountLinking);
@@ -50,5 +51,11 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
 
     private static String stringValue(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private static boolean booleanValue(Object value) {
+        return value instanceof Boolean booleanValue
+                ? booleanValue
+                : value != null && Boolean.parseBoolean(String.valueOf(value));
     }
 }

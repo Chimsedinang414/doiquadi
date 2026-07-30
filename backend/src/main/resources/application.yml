@@ -43,7 +43,9 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
+      # Schema changes are managed by the SQL files in database/ and db/schema/.
+      # Automatic Hibernate updates can break legacy foreign-key columns.
+      ddl-auto: ${JPA_DDL_AUTO:none}
     show-sql: false
     properties:
       hibernate:

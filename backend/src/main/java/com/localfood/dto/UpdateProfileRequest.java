@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class UpdateProfileRequest {
     @Size(min = 3, max = 50, message = "Tên người dùng phải có từ 3 đến 50 ký tự")
-    @Pattern(regexp = "^[\\\\p{L}\\\\p{N}._-]+$",
+    @Pattern(regexp = "^[\\p{L}\\p{N}._-]+$",
             message = "Tên người dùng chỉ được chứa chữ cái, số, dấu chấm, gạch dưới hoặc gạch ngang")
     private String userName;
 

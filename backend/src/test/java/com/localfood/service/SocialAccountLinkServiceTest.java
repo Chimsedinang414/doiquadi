@@ -33,7 +33,7 @@ class SocialAccountLinkServiceTest {
     private SocialAccountLinkService service;
 
     @Test
-    void existingEmailAlwaysRequiresExplicitLinking() {
+    void unverifiedExistingEmailRequiresExplicitLinking() {
         User localUser = user("local-user", "person@example.com");
         when(oauthAccountRepository.findByProviderAndProviderSubject(AuthProvider.GOOGLE, "google-1"))
                 .thenReturn(Optional.empty());
@@ -46,13 +46,40 @@ class SocialAccountLinkServiceTest {
                         AuthProvider.GOOGLE,
                         "google-1",
                         "Person@Example.com",
-                        "Person",
+                        false,
                         null
                 )
         );
 
         assertEquals("ACCOUNT_LINKING_REQUIRED", exception.getError().getErrorCode());
         verify(oauthAccountRepository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void verifiedGoogleEmailAutomaticallyLinksExistingUser() {
+        User localUser = user("local-user", "person@example.com");
+        when(oauthAccountRepository.findByProviderAndProviderSubject(AuthProvider.GOOGLE, "google-1"))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByEmailForUpdate("person@example.com"))
+                .thenReturn(Optional.of(localUser));
+        when(oauthAccountRepository.existsByUserIdAndProvider("local-user", AuthProvider.GOOGLE))
+                .thenReturn(false);
+
+        User result = service.resolve(
+                AuthProvider.GOOGLE,
+                "google-1",
+                "Person@Example.com",
+                true,
+                null
+        );
+
+        assertSame(localUser, result);
+        ArgumentCaptor<OAuthAccount> account = ArgumentCaptor.forClass(OAuthAccount.class);
+        verify(oauthAccountRepository).saveAndFlush(account.capture());
+        assertEquals(AuthProvider.GOOGLE, account.getValue().getProvider());
+        assertEquals("google-1", account.getValue().getProviderSubject());
+        assertEquals("person@example.com", account.getValue().getEmailAtProvider());
+        assertSame(localUser, account.getValue().getUser());
     }
 
     @Test

@@ -3,7 +3,14 @@ import { api, getCurrentUser, getOAuthAuthorizationUrl, setAuthSession } from '.
 import UserProfileView from '../components/UserProfileView';
 import Icon from '../styles/icon';
 
-export default function ProfilePage({ initialMode = 'login', profileUserId, onNavigateToDetail, onSettings, onForgotPassword }) {
+export default function ProfilePage({
+  initialMode = 'login',
+  profileUserId,
+  onNavigateToDetail,
+  onProfileOpen,
+  onSettings,
+  onForgotPassword,
+}) {
   const [user, setUser] = useState(getCurrentUser());
   const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ userName: '', email: '', password: '', bio: '' });
@@ -51,7 +58,7 @@ export default function ProfilePage({ initialMode = 'login', profileUserId, onNa
 
   if (user || profileUserId) return (
     <UserProfileView userId={profileUserId || user.id} viewer={user}
-      onNavigateToDetail={onNavigateToDetail} onSettings={onSettings} />
+      onNavigateToDetail={onNavigateToDetail} onProfileOpen={onProfileOpen} onSettings={onSettings} />
   );
 
   return (

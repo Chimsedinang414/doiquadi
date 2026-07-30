@@ -1,7 +1,7 @@
 export function getUserDisplayName(user, fallback = 'Người dùng') {
   const fullName = typeof user?.fullName === 'string' ? user.fullName.trim() : '';
   const userName = typeof user?.userName === 'string' ? user.userName.trim() : '';
-  return userName || fullName || fallback;
+  return fullName || userName || fallback;
 }
 
 export function getUserInitial(user, fallback = 'U') {

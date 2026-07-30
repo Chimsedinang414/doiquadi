@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
@@ -40,12 +41,18 @@ public class S3StorageService implements StorageService {
 
     private final StorageProperties properties;
     private final UserRepository userRepository;
+    private final String endpoint;
+    private final String bucket;
+    private final String publicBaseUrl;
     private final S3Client s3Client;
     private final S3Presigner presigner;
 
     public S3StorageService(StorageProperties properties, UserRepository userRepository) {
         this.properties = properties;
         this.userRepository = userRepository;
+        this.endpoint = trimToEmpty(properties.getEndpoint());
+        this.bucket = trimToEmpty(properties.getBucket());
+        this.publicBaseUrl = trimToEmpty(properties.getPublicBaseUrl());
 
         if (!properties.isEnabled()) {
             this.s3Client = null;
@@ -56,11 +63,14 @@ public class S3StorageService implements StorageService {
         validateConfiguration();
         StaticCredentialsProvider credentials = StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey()));
+        boolean usePathStyle = !endpoint.isBlank()
+                && properties.isPathStyleAccess();
         S3Configuration s3Configuration = S3Configuration.builder()
-                .pathStyleAccessEnabled(properties.isPathStyleAccess())
+                .pathStyleAccessEnabled(usePathStyle)
                 .build();
 
         S3ClientBuilder clientBuilder = S3Client.builder()
+                .httpClientBuilder(UrlConnectionHttpClient.builder())
                 .region(Region.of(properties.getRegion()))
                 .credentialsProvider(credentials)
                 .serviceConfiguration(s3Configuration);
@@ -69,10 +79,10 @@ public class S3StorageService implements StorageService {
                 .credentialsProvider(credentials)
                 .serviceConfiguration(s3Configuration);
 
-        if (!properties.getEndpoint().isBlank()) {
-            URI endpoint = URI.create(properties.getEndpoint());
-            clientBuilder.endpointOverride(endpoint);
-            presignerBuilder.endpointOverride(endpoint);
+        if (!endpoint.isBlank()) {
+            URI endpointUri = URI.create(endpoint);
+            clientBuilder.endpointOverride(endpointUri);
+            presignerBuilder.endpointOverride(endpointUri);
         }
 
         this.s3Client = clientBuilder.build();
@@ -90,7 +100,7 @@ public class S3StorageService implements StorageService {
         String objectKey = objectPrefix(request.userId())
                 + UUID.randomUUID() + IMAGE_EXTENSIONS.get(contentType);
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(properties.getBucket())
+                .bucket(bucket)
                 .key(objectKey)
                 .contentType(contentType)
                 .build();
@@ -124,7 +134,7 @@ public class S3StorageService implements StorageService {
         validateOwnership(userId, objectKey);
         try {
             HeadObjectResponse response = s3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(properties.getBucket())
+                    .bucket(bucket)
                     .key(objectKey)
                     .build());
             String contentType = normalizeContentType(response.contentType());
@@ -164,7 +174,7 @@ public class S3StorageService implements StorageService {
     }
 
     private String publicUrl(String objectKey) {
-        return stripTrailingSlash(properties.getPublicBaseUrl()) + "/" + objectKey;
+        return stripTrailingSlash(publicBaseUrl) + "/" + objectKey;
     }
 
     private String stripTrailingSlash(String value) {
@@ -185,16 +195,20 @@ public class S3StorageService implements StorageService {
     }
 
     private void validateConfiguration() {
-        if (properties.getBucket().isBlank()
+        if (bucket.isBlank()
                 || properties.getAccessKey().isBlank()
                 || properties.getSecretKey().isBlank()
-                || properties.getPublicBaseUrl().isBlank()) {
+                || publicBaseUrl.isBlank()) {
             throw new IllegalStateException(
                     "Storage is enabled but bucket, credentials or public base URL is missing");
         }
         if (properties.getPresignSeconds() < 60 || properties.getPresignSeconds() > 3600) {
             throw new IllegalStateException("Storage presign duration must be between 60 and 3600 seconds");
         }
+    }
+
+    private static String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     @PreDestroy

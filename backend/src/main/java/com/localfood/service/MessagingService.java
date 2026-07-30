@@ -405,7 +405,7 @@ public class MessagingService {
     }
 
     private static String displayName(String fullName, String userName) {
-        return userName == null || userName.isBlank() ? fullName : userName.trim();
+        return fullName == null || fullName.isBlank() ? userName : fullName.trim();
     }
 
     private Conversation requireConversation(String id) {

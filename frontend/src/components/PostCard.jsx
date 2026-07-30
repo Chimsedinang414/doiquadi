@@ -1,12 +1,21 @@
 import React, { useRef, useState } from 'react';
 import Icon from '../styles/icon';
 import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
+import { getCurrentUser } from '../services/api';
+import EditPostModal from './EditPostModal';
 
 export default function PostCard({ post, onLike, onSave, onComment }) {
   const [commentText, setCommentText] = useState('');
   const [showMore, setShowMore] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
+  const [showEditMenu, setShowEditMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const commentInputRef = useRef(null);
+  const carouselRef = useRef(null);
+
+  const currentUser = getCurrentUser();
+  const isAuthor = currentUser && post.author && currentUser.id === post.author.id;
 
   const gradientStyle = {
     background: `linear-gradient(135deg, ${post.colors?.[0] || '#f58529'}, ${post.colors?.[1] || '#dd2a7b'})`,
@@ -35,6 +44,17 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
     window.setTimeout(() => setShareStatus(''), 2200);
   };
 
+  const handleScroll = () => {
+    if (carouselRef.current) {
+      const scrollLeft = carouselRef.current.scrollLeft;
+      const width = carouselRef.current.clientWidth;
+      const newIndex = Math.round(scrollLeft / width);
+      if (newIndex !== currentImageIndex) {
+        setCurrentImageIndex(newIndex);
+      }
+    }
+  };
+
   return (
     <article className="lf-post" id={`post-${post.id}`}>
       <div className="post-head">
@@ -60,11 +80,42 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
             </div>
           </div>
         </div>
-        <button className="post-more-btn" type="button" aria-label="Thêm tùy chọn">•••</button>
+        
+        <div style={{ position: 'relative' }}>
+          <button className="post-more-btn" type="button" aria-label="Thêm tùy chọn"
+            onClick={() => setShowEditMenu(prev => !prev)}>•••</button>
+          {showEditMenu && isAuthor && (
+            <div className="post-options-menu" style={{
+              position: 'absolute', right: 0, top: '100%', background: '#fff', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: '8px', zIndex: 10, padding: '4px',
+              minWidth: '150px'
+            }}>
+              <button type="button" onClick={() => { setIsEditing(true); setShowEditMenu(false); }} 
+                style={{ padding: '8px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>
+                Chỉnh sửa bài viết
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="post-img-wrap" onDoubleClick={() => onLike?.(post.id)}>
-        {post.imageUrl ? (
+        {post.imageUrls && post.imageUrls.length > 0 ? (
+          <>
+            <div className="post-img-carousel" ref={carouselRef} onScroll={handleScroll}>
+              {post.imageUrls.map((url, index) => (
+                <img key={index} className="post-main-image" src={url} alt={post.description || post.restaurantName} />
+              ))}
+            </div>
+            {post.imageUrls.length > 1 && (
+              <div className="post-carousel-dots">
+                {post.imageUrls.map((_, index) => (
+                  <div key={index} className={`post-carousel-dot ${index === currentImageIndex ? 'active' : ''}`} />
+                ))}
+              </div>
+            )}
+          </>
+        ) : post.imageUrl ? (
           <img className="post-main-image" src={post.imageUrl} alt={post.description || post.restaurantName} />
         ) : (
           <div className="post-img-placeholder" style={gradientStyle}>
@@ -132,6 +183,17 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
         </div>
         <div className="post-time">{post.time}</div>
       </div>
+      {isEditing && (
+        <EditPostModal 
+          currentUser={currentUser} 
+          post={post} 
+          onClose={() => setIsEditing(false)} 
+          onUpdated={(updatedPost) => {
+            setIsEditing(false);
+            window.location.reload(); // Reload to refresh feed
+          }} 
+        />
+      )}
     </article>
   );
 }
