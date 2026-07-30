@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
 import java.util.List;
 
 public final class SocialDtos {
@@ -23,6 +24,15 @@ public final class SocialDtos {
             @DecimalMin("0.0") @DecimalMax("5.0") Float rating,
             List<@Size(max = 500) String> imageUrls,
             List<@Size(max = 1024) String> imageKeys,
+            List<@Size(max = 100) String> tags) {
+    }
+
+    public record UpdatePostRequest(
+            @NotBlank String userId,
+            String locationId,
+            @NotBlank @Size(max = 255) String title,
+            String content,
+            @DecimalMin("0.0") @DecimalMax("5.0") Float rating,
             List<@Size(max = 100) String> tags) {
     }
 

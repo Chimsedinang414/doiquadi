@@ -200,6 +200,33 @@ public class SocialService {
     }
 
     @Transactional
+    public SocialDtos.PostResponse updatePost(String postId, SocialDtos.UpdatePostRequest request) {
+        Post post = requirePost(postId);
+        if (!post.getUser().getId().equals(request.userId())) {
+            throw new AppException("Bạn không có quyền chỉnh sửa bài viết này");
+        }
+        Location location = request.locationId() == null || request.locationId().isBlank()
+                ? null : requireLocation(request.locationId());
+
+        post.setLocation(location);
+        post.setTitle(request.title().trim());
+        post.setContent(request.content());
+        post.setRating(request.rating());
+        Post savedPost = postRepository.save(post);
+
+        postTagRepository.deleteAll(postTagRepository.findByPost_Id(post.getId()));
+        if (request.tags() != null) {
+            request.tags().stream()
+                    .filter(name -> name != null && !name.isBlank())
+                    .map(this::normalizeTag)
+                    .distinct()
+                    .forEach(name -> attachTag(savedPost, name));
+        }
+
+        return toPostResponse(savedPost);
+    }
+
+    @Transactional
     public void deletePost(String postId, String userId) {
         Post post = requirePost(postId);
         if (!post.getUser().getId().equals(userId)) {
