@@ -112,6 +112,7 @@ export const api = {
   toggleFollow: followingId => client.put('/follows', { followingId }).then(response => response.data),
   getPost: id => client.get('/posts/' + id).then(response => response.data),
   createPost: data => client.post('/posts', data).then(response => response.data),
+  updatePost: (postId, data) => client.put('/posts/' + postId, data).then(response => response.data),
   addComment: (postId, data) => client.post('/posts/' + postId + '/comments', data).then(response => response.data),
   toggleLike: (postId, userId) => client.put('/posts/' + postId + '/like', { userId }).then(response => response.data),
   getLocations: () => client.get('/locations').then(response => response.data),
@@ -205,6 +206,7 @@ export function toPostView(post) {
     locationId: post.location?.id,
     author: post.author,
     imageUrl: post.imageUrls?.[0],
+    imageUrls: post.imageUrls || [],
     colors: ['#f58529', '#dd2a7b'],
   };
 }
