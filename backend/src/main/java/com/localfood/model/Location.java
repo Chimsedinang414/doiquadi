@@ -35,4 +35,8 @@ public class Location {
     private LocationStatus status = LocationStatus.PENDING;
     @Column(name = "moderation_reason", length = 500)
     private String moderationReason;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 }

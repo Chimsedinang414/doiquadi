@@ -6,8 +6,10 @@ import com.localfood.exception.AppException;
 import com.localfood.model.Location;
 import com.localfood.model.LocationImage;
 import com.localfood.model.LocationStatus;
+import com.localfood.model.User;
 import com.localfood.repository.LocationImageRepository;
 import com.localfood.repository.LocationRepository;
+import com.localfood.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +23,17 @@ public class LocationServiceImpl implements LocationService {
     private final LocationRepository locationRepository;
     private final LocationImageRepository locationImageRepository;
     private final StorageService storageService;
+    private final UserRepository userRepository;
 
     @Override
     public List<LocationResponse> findAll() {
         return locationRepository.findByStatusOrderByNameAsc(LocationStatus.VERIFIED)
+                .stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<LocationResponse> findByUser(String userId) {
+        return locationRepository.findByCreatedBy_IdAndStatusOrderByNameAsc(userId, LocationStatus.VERIFIED)
                 .stream().map(this::toResponse).toList();
     }
 
@@ -38,6 +47,13 @@ public class LocationServiceImpl implements LocationService {
     public LocationResponse create(LocationRequest request) {
         Location location = new Location();
         apply(location, request);
+        
+        if (request.userId() != null && !request.userId().isBlank()) {
+            User creator = userRepository.findById(request.userId())
+                    .orElseThrow(() -> new AppException("User not found"));
+            location.setCreatedBy(creator);
+        }
+        
         Location saved = locationRepository.save(location);
         replaceImages(saved, request);
         return toResponse(saved);
@@ -45,8 +61,11 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     @Transactional
-    public LocationResponse update(String id, LocationRequest request) {
+    public LocationResponse update(String id, String userId, LocationRequest request) {
         Location location = requireLocation(id);
+        if (location.getCreatedBy() == null || !location.getCreatedBy().getId().equals(userId)) {
+            throw new AppException("Bạn không có quyền chỉnh sửa địa điểm này");
+        }
         apply(location, request);
         Location saved = locationRepository.save(location);
         if (request.imageKeys() != null) {
@@ -57,8 +76,12 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     @Transactional
-    public void delete(String id) {
-        locationRepository.delete(requireLocation(id));
+    public void delete(String id, String userId) {
+        Location location = requireLocation(id);
+        if (location.getCreatedBy() == null || !location.getCreatedBy().getId().equals(userId)) {
+            throw new AppException("Bạn không có quyền xóa địa điểm này");
+        }
+        locationRepository.delete(location);
     }
 
     private void apply(Location location, LocationRequest request) {
@@ -114,8 +137,9 @@ public class LocationServiceImpl implements LocationService {
         List<String> imageUrls = locationImageRepository.findByLocation_Id(location.getId()).stream()
                 .map(LocationImage::getImageUrl)
                 .toList();
+        String createdById = location.getCreatedBy() != null ? location.getCreatedBy().getId() : null;
         return new LocationResponse(location.getId(), location.getName(), location.getAddress(),
                 location.getLatitude(), location.getLongitude(), location.getOpenTime(),
-                location.getCloseTime(), location.getPhone(), location.getAveragePrice(), imageUrls);
+                location.getCloseTime(), location.getPhone(), location.getAveragePrice(), imageUrls, createdById);
     }
 }

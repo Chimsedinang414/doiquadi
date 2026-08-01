@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from '../styles/icon';
 import { api, toPostView, updateCurrentUser } from '../services/api';
 import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
+import EditPostModal from './EditPostModal';
+import EditLocationModal from './EditLocationModal';
 
 const copy = {
   loading: '\u0110ang t\u1ea3i trang c\u00e1 nh\u00e2n...',
@@ -21,12 +23,16 @@ const copy = {
   loginToFollow: 'B\u1ea1n c\u1ea7n \u0111\u0103ng nh\u1eadp \u0111\u1ec3 theo d\u00f5i ng\u01b0\u1eddi n\u00e0y.',
   followersTitle: 'Ng\u01b0\u1eddi theo d\u00f5i',
   followingTitle: '\u0110ang theo d\u00f5i',
-  searchPeople: 'T\u00ecm ki\u1ebfm',
-  loadingPeople: '\u0110ang t\u1ea3i danh s\u00e1ch...',
-  emptyFollowers: 'Ch\u01b0a c\u00f3 ng\u01b0\u1eddi theo d\u00f5i.',
-  emptyFollowing: 'Ch\u01b0a theo d\u00f5i ai.',
-  noSearchResults: 'Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n ph\u00f9 h\u1ee3p.',
-  close: '\u0110\u00f3ng',
+  searchPeople: 'Tìm kiếm',
+  loadingPeople: 'Đang tải danh sách...',
+  emptyFollowers: 'Chưa có người theo dõi.',
+  emptyFollowing: 'Chưa theo dõi ai.',
+  noSearchResults: 'Không tìm thấy tài khoản phù hợp.',
+  close: 'Đóng',
+  locationTab: 'ĐỊA ĐIỂM',
+  emptyLocationsTitle: 'Chưa có địa điểm',
+  emptyLocationsOwn: 'Thêm địa điểm quán ăn bạn yêu thích.',
+  emptyLocationsOther: 'Người dùng này chưa thêm địa điểm nào.',
 };
 
 const formatCount = value => new Intl.NumberFormat('vi-VN').format(value || 0);
@@ -54,6 +60,11 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
   const [connectionError, setConnectionError] = useState('');
   const [connectionQuery, setConnectionQuery] = useState('');
   const [connectionPending, setConnectionPending] = useState(new Set());
+  
+  const [activeTab, setActiveTab] = useState('posts');
+  const [locations, setLocations] = useState([]);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editingLocation, setEditingLocation] = useState(null);
 
   const loadProfile = useCallback(() => {
     if (!userId) return;
@@ -63,6 +74,10 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
       .then(setProfile)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
+      
+    api.getMyLocations(userId)
+      .then(setLocations)
+      .catch(console.error);
   }, [userId, viewer?.id]);
 
   useEffect(() => {
@@ -226,6 +241,26 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
     }
   };
 
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+    try {
+      await api.deletePost(postId, viewer.id);
+      setProfile(prev => ({ ...prev, posts: prev.posts.filter(p => p.id !== postId) }));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteLocation = async (locId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa địa điểm này?")) return;
+    try {
+      await api.deleteLocation(locId, viewer.id);
+      setLocations(prev => prev.filter(l => l.id !== locId));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   return (
     <section className="ig-profile-page">
       <div className="ig-profile-header">
@@ -297,38 +332,86 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
       {error && <div className="profile-inline-error" role="alert">{error}</div>}
 
       <div className="ig-profile-tabs">
-        <button className="active" type="button">
+        <button className={activeTab === 'posts' ? 'active' : ''} type="button" onClick={() => setActiveTab('posts')}>
           <Icon name="picture" alt="" className="inline-icon" />
           {copy.postTab}
         </button>
+        <button className={activeTab === 'locations' ? 'active' : ''} type="button" onClick={() => setActiveTab('locations')}>
+          <Icon name="marker" alt="" className="inline-icon" />
+          {copy.locationTab}
+        </button>
       </div>
 
-      {posts.length ? (
-        <div className="ig-profile-grid">
-          {posts.map(post => (
-            <button key={post.id} className="ig-profile-post" type="button"
-              disabled={!post.locationId} onClick={() => post.locationId && onNavigateToDetail(post.locationId)}>
-              {post.imageUrl
-                ? <img src={post.imageUrl} alt={post.description || post.restaurantName} />
-                : <div className="ig-profile-post-fallback">
-                    <Icon name="picture" alt="" className="profile-grid-picture-icon" />
-                    <strong>{post.restaurantName}</strong>
-                  </div>}
-              <span className="ig-profile-post-overlay">
-                <strong>&hearts; {formatCount(post.likes)}</strong>
-                <strong className="profile-overlay-stat">
-                  <Icon name="envelope" alt="" className="inline-icon inverted-icon" /> {formatCount(post.commentsCount)}
-                </strong>
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="ig-profile-empty">
-          <span className="ig-profile-empty-icon"><Icon name="picture" alt="" /></span>
-          <h2>{copy.emptyTitle}</h2>
-          <p>{isOwnProfile ? copy.emptyOwn : copy.emptyOther}</p>
-        </div>
+      {activeTab === 'posts' && (
+        posts.length ? (
+          <div className="ig-profile-grid">
+            {posts.map(post => (
+              <div key={post.id} className="ig-profile-post-wrapper" style={{ position: 'relative' }}>
+                <button className="ig-profile-post" type="button"
+                  disabled={!post.locationId} onClick={() => post.locationId && onNavigateToDetail(post.locationId)}>
+                  {post.imageUrl
+                    ? <img src={post.imageUrl} alt={post.description || post.restaurantName} />
+                    : <div className="ig-profile-post-fallback">
+                        <Icon name="picture" alt="" className="profile-grid-picture-icon" />
+                        <strong>{post.restaurantName}</strong>
+                      </div>}
+                  <span className="ig-profile-post-overlay">
+                    <strong>&hearts; {formatCount(post.likes)}</strong>
+                    <strong className="profile-overlay-stat">
+                      <Icon name="envelope" alt="" className="inline-icon inverted-icon" /> {formatCount(post.commentsCount)}
+                    </strong>
+                  </span>
+                </button>
+                {isOwnProfile && (
+                  <div className="profile-post-actions" style={{ position: 'absolute', top: 5, right: 5, display: 'flex', gap: 4, zIndex: 2 }}>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingPost(profile.posts.find(p => p.id === post.id)); }} style={{ background: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}>✎</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }} style={{ background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}>✕</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="ig-profile-empty">
+            <span className="ig-profile-empty-icon"><Icon name="picture" alt="" /></span>
+            <h2>{copy.emptyTitle}</h2>
+            <p>{isOwnProfile ? copy.emptyOwn : copy.emptyOther}</p>
+          </div>
+        )
+      )}
+
+      {activeTab === 'locations' && (
+        locations.length ? (
+          <div className="ig-profile-grid">
+            {locations.map(loc => (
+              <div key={loc.id} className="ig-profile-post-wrapper" style={{ position: 'relative' }}>
+                <button className="ig-profile-post" type="button" onClick={() => onNavigateToDetail(loc.id)}>
+                  {loc.imageUrls?.[0]
+                    ? <img src={loc.imageUrls[0]} alt={loc.name} />
+                    : <div className="ig-profile-post-fallback">
+                        <Icon name="marker" alt="" className="profile-grid-picture-icon" />
+                        <strong>{loc.name}</strong>
+                      </div>}
+                  <span className="ig-profile-post-overlay">
+                    <strong>{loc.name}</strong>
+                  </span>
+                </button>
+                {isOwnProfile && (
+                  <div className="profile-post-actions" style={{ position: 'absolute', top: 5, right: 5, display: 'flex', gap: 4, zIndex: 2 }}>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingLocation(loc); }} style={{ background: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}>✎</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteLocation(loc.id); }} style={{ background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}>✕</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="ig-profile-empty">
+            <span className="ig-profile-empty-icon"><Icon name="marker" alt="" /></span>
+            <h2>{copy.emptyLocationsTitle}</h2>
+            <p>{isOwnProfile ? copy.emptyLocationsOwn : copy.emptyLocationsOther}</p>
+          </div>
+        )
       )}
 
       {connectionType && (
@@ -454,6 +537,33 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
             </form>
           </div>
         </div>
+      )}
+
+      {editingPost && (
+        <EditPostModal
+          currentUser={viewer}
+          post={editingPost}
+          onClose={() => setEditingPost(null)}
+          onUpdated={(updatedPost) => {
+            setProfile(prev => ({
+              ...prev,
+              posts: prev.posts.map(p => p.id === updatedPost.id ? updatedPost : p)
+            }));
+            setEditingPost(null);
+          }}
+        />
+      )}
+
+      {editingLocation && (
+        <EditLocationModal
+          currentUser={viewer}
+          location={editingLocation}
+          onClose={() => setEditingLocation(null)}
+          onUpdated={(updatedLoc) => {
+            setLocations(prev => prev.map(l => l.id === updatedLoc.id ? updatedLoc : l));
+            setEditingLocation(null);
+          }}
+        />
       )}
     </section>
   );
