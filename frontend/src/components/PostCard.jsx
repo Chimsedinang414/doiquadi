@@ -94,6 +94,20 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
                 style={{ padding: '8px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>
                 Chỉnh sửa bài viết
               </button>
+              <button type="button" onClick={async () => {
+                setShowEditMenu(false);
+                if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+                  try {
+                    await import('../services/api').then(m => m.api.deletePost(post.id, currentUser.id));
+                    window.location.reload();
+                  } catch (e) {
+                    alert(e.message);
+                  }
+                }
+              }} 
+                style={{ padding: '8px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem', color: '#c5221f' }}>
+                Xóa bài viết
+              </button>
             </div>
           )}
         </div>

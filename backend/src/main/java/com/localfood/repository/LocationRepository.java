@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface LocationRepository extends JpaRepository<Location, String> {
     List<Location> findByStatusOrderByNameAsc(LocationStatus status);
+    List<Location> findByCreatedBy_IdAndStatusOrderByNameAsc(String userId, LocationStatus status);
     long countByStatus(LocationStatus status);
 
     @Query("""

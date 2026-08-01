@@ -32,17 +32,20 @@ public class LocationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(locationService.create(request));
     }
 
+    @GetMapping("/my")
+    public List<LocationResponse> findMyLocations(@RequestParam String userId) {
+        return locationService.findByUser(userId);
+    }
+
     @PutMapping("/{id}")
     public LocationResponse update(
-            @PathVariable String id, @Valid @RequestBody LocationRequest request) {
-        return locationService.update(id, request);
+            @PathVariable String id, @RequestParam String userId, @Valid @RequestBody LocationRequest request) {
+        return locationService.update(id, userId, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
-        locationService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable String id, @RequestParam String userId) {
+        locationService.delete(id, userId);
         return ResponseEntity.noContent().build();
     }
-
-    
 }

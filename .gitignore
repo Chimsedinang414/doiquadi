@@ -63,3 +63,11 @@ env
 # Keep safe configuration templates under version control
 !.env.example
 !**/.env.example
+
+
+#SQL
+*.dump
+*.bak
+*.sqlite
+*.db
+/doiquadi.sql

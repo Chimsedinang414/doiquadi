@@ -6,8 +6,9 @@ import java.util.List;
 
 public interface LocationService {
     List<LocationResponse> findAll();
+    List<LocationResponse> findByUser(String userId);
     LocationResponse findById(String id);
     LocationResponse create(LocationRequest request);
-    LocationResponse update(String id, LocationRequest request);
-    void delete(String id);
+    LocationResponse update(String id, String userId, LocationRequest request);
+    void delete(String id, String userId);
 }

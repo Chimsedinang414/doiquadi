@@ -1,6 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import { api, getCurrentUser, uploadImage } from '../services/api';
 import Icon from '../styles/icon';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+function MapPicker({ position, setPosition }) {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return position ? <Marker position={position} /> : null;
+}
 
 const MAX_IMAGES = 4;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -19,8 +37,9 @@ export default function AddLocationPage({ onBack }) {
   const [form, setForm] = useState({
     name: '', category: '', address: '', phone: '',
     priceMin: '', priceMax: '', description: '',
-    lat: '', lng: '',
+    openTime: '', closeTime: '',
   });
+  const [mapPosition, setMapPosition] = useState(null);
 
   const categories = ['Phở', 'Bún Bò', 'Bánh Mì', 'Cơm Tấm', 'Lẩu', 'Cà phê', 'Tráng miệng', 'Khác'];
   const previews = useMemo(
@@ -73,10 +92,10 @@ export default function AddLocationPage({ onBack }) {
         name: form.name,
         address: form.address || null,
         phone: form.phone || null,
-        latitude: form.lat ? Number(form.lat) : null,
-        longitude: form.lng ? Number(form.lng) : null,
-        openTime: null,
-        closeTime: null,
+        latitude: mapPosition ? mapPosition[0] : null,
+        longitude: mapPosition ? mapPosition[1] : null,
+        openTime: form.openTime ? form.openTime + ":00" : null,
+        closeTime: form.closeTime ? form.closeTime + ":00" : null,
         averagePrice: prices.length ? prices.reduce((sum, value) => sum + value, 0) / prices.length : null,
         userId: currentUser?.id || null,
         imageKeys: uploaded.map(image => image.objectKey),
@@ -223,31 +242,38 @@ export default function AddLocationPage({ onBack }) {
 
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label" htmlFor="loc-lat">Vĩ độ (Latitude)</label>
+            <label className="form-label" htmlFor="loc-open">Giờ mở cửa</label>
             <input
-              type="number"
-              id="loc-lat"
-              name="lat"
+              type="time"
+              id="loc-open"
+              name="openTime"
               className="form-input"
-              placeholder="21.0285"
-              step="any"
-              value={form.lat}
+              value={form.openTime}
               onChange={handleChange}
             />
           </div>
           <div className="form-group">
-            <label className="form-label" htmlFor="loc-lng">Kinh độ (Longitude)</label>
+            <label className="form-label" htmlFor="loc-close">Giờ đóng cửa</label>
             <input
-              type="number"
-              id="loc-lng"
-              name="lng"
+              type="time"
+              id="loc-close"
+              name="closeTime"
               className="form-input"
-              placeholder="105.8048"
-              step="any"
-              value={form.lng}
+              value={form.closeTime}
               onChange={handleChange}
             />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Ghim vị trí trên bản đồ *</label>
+          <div style={{ height: '300px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', marginBottom: '4px' }}>
+            <MapContainer center={[21.0285, 105.8048]} zoom={13} style={{ width: '100%', height: '100%' }}>
+              <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <MapPicker position={mapPosition} setPosition={setMapPosition} />
+            </MapContainer>
+          </div>
+          <small style={{ color: 'var(--text-secondary)' }}>Nhấn vào bản đồ để chọn vị trí chính xác của quán.</small>
         </div>
 
         <div className="form-row">
