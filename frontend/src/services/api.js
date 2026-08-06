@@ -138,6 +138,9 @@ export const api = {
     .then(response => response.data),
   updateProfile: (userId, data) => client.put('/users/' + userId, data).then(response => response.data),
 
+  // ── Reports ──────────────────────────────────────────────────
+  createReport: data => client.post('/reports', data).then(response => response.data),
+
   // ── Messaging ───────────────────────────────────────────────
   getMutualFollows: userId => client.get('/messaging/mutual-follows', { params: { userId } }).then(r => r.data),
   getConversations: userId => client.get('/messaging/conversations', { params: { userId } }).then(r => r.data),
@@ -191,7 +194,8 @@ export function updateCurrentUser(user) {
   window.dispatchEvent(new Event('auth-changed'));
 }
 
-export function toPostView(post) {
+export function toPostView(post, savedLocationIds) {
+  const locationId = post.location?.id;
   return {
     id: post.id,
     restaurantName: post.location?.name || post.title,
@@ -202,12 +206,12 @@ export function toPostView(post) {
     likes: post.likes || 0,
     commentsCount: post.comments || 0,
     liked: false,
-    saved: false,
+    saved: !!(locationId && savedLocationIds && savedLocationIds.has(locationId)),
     tags: (post.tags || []).map(tag => tag.startsWith('#') ? tag : '#' + tag),
     description: post.content || post.title,
     time: post.createdAt ? new Date(post.createdAt).toLocaleString('vi-VN') : '',
     open: true,
-    locationId: post.location?.id,
+    locationId,
     author: post.author,
     imageUrl: post.imageUrls?.[0],
     imageUrls: post.imageUrls || [],

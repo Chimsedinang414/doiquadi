@@ -13,15 +13,28 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(5);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [savedLocationIds, setSavedLocationIds] = useState(new Set());
   const loadMoreRef = useRef(null);
   const currentUser = getCurrentUser();
 
   useEffect(() => {
-    api.getPosts()
-      .then(data => setPosts(data.map(toPostView)))
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    const loadFeed = async () => {
+      try {
+        const [postsData, favoritesData] = await Promise.all([
+          api.getPosts(),
+          currentUser?.id ? api.getFavorites(currentUser.id).catch(() => []) : Promise.resolve([]),
+        ]);
+        const savedIds = new Set(favoritesData.map(fav => fav.location?.id).filter(Boolean));
+        setSavedLocationIds(savedIds);
+        setPosts(postsData.map(post => toPostView(post, savedIds)));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadFeed();
+  }, [currentUser?.id]);
 
   const visiblePosts = useMemo(() => posts.slice(0, visibleCount), [posts, visibleCount]);
 
@@ -71,6 +84,15 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
     try {
       const result = await api.toggleFavorite({ userId, locationId: post.locationId });
       setPosts(previous => previous.map(item => item.id === postId ? { ...item, saved: result.active } : item));
+      setSavedLocationIds(previous => {
+        const next = new Set(previous);
+        if (result.active) {
+          next.add(post.locationId);
+        } else {
+          next.delete(post.locationId);
+        }
+        return next;
+      });
     } catch (err) {
       setError(err.message);
     }
@@ -90,7 +112,7 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
   };
 
   const handleCreated = created => {
-    setPosts(previous => [toPostView(created), ...previous]);
+    setPosts(previous => [toPostView(created, savedLocationIds), ...previous]);
     setVisibleCount(previous => previous + 1);
     setComposerOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });

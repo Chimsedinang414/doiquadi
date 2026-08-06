@@ -3,6 +3,7 @@ import Icon from '../styles/icon';
 import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
 import { getCurrentUser } from '../services/api';
 import EditPostModal from './EditPostModal';
+import ReportPostModal from './ReportPostModal';
 
 export default function PostCard({ post, onLike, onSave, onComment }) {
   const [commentText, setCommentText] = useState('');
@@ -10,6 +11,8 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
   const [shareStatus, setShareStatus] = useState('');
   const [showEditMenu, setShowEditMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [saveTip, setSaveTip] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const commentInputRef = useRef(null);
   const carouselRef = useRef(null);
@@ -42,6 +45,15 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
       setShareStatus('Không thể chia sẻ lúc này');
     }
     window.setTimeout(() => setShareStatus(''), 2200);
+  };
+
+  const handleSave = () => {
+    if (!post.locationId) {
+      setSaveTip('Bài viết này chưa gắn địa điểm nên không thể lưu');
+      window.setTimeout(() => setSaveTip(''), 2500);
+      return;
+    }
+    onSave?.(post.id);
   };
 
   const handleScroll = () => {
@@ -84,30 +96,39 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
         <div style={{ position: 'relative' }}>
           <button className="post-more-btn" type="button" aria-label="Thêm tùy chọn"
             onClick={() => setShowEditMenu(prev => !prev)}>•••</button>
-          {showEditMenu && isAuthor && (
-            <div className="post-options-menu" style={{
-              position: 'absolute', right: 0, top: '100%', background: '#fff', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: '8px', zIndex: 10, padding: '4px',
-              minWidth: '150px'
-            }}>
-              <button type="button" onClick={() => { setIsEditing(true); setShowEditMenu(false); }} 
-                style={{ padding: '8px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>
-                Chỉnh sửa bài viết
-              </button>
-              <button type="button" onClick={async () => {
-                setShowEditMenu(false);
-                if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
-                  try {
-                    await import('../services/api').then(m => m.api.deletePost(post.id, currentUser.id));
-                    window.location.reload();
-                  } catch (e) {
-                    alert(e.message);
-                  }
-                }
-              }} 
-                style={{ padding: '8px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem', color: '#c5221f' }}>
-                Xóa bài viết
-              </button>
+          {showEditMenu && (
+            <div className="post-options-menu">
+              {isAuthor && (
+                <>
+                  <button type="button" className="post-options-item" onClick={() => { setIsEditing(true); setShowEditMenu(false); }}>
+                    Chỉnh sửa bài viết
+                  </button>
+                  <button type="button" className="post-options-item post-options-danger" onClick={async () => {
+                    setShowEditMenu(false);
+                    if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+                      try {
+                        await import('../services/api').then(m => m.api.deletePost(post.id, currentUser.id));
+                        window.location.reload();
+                      } catch (e) {
+                        alert(e.message);
+                      }
+                    }
+                  }}>
+                    Xóa bài viết
+                  </button>
+                </>
+              )}
+              {!isAuthor && currentUser && (
+                <button type="button" className="post-options-item post-options-danger" onClick={() => {
+                  setShowEditMenu(false);
+                  setIsReporting(true);
+                }}>
+                  ⚑ Báo cáo bài viết
+                </button>
+              )}
+              {!currentUser && !isAuthor && (
+                <div className="post-options-item post-options-hint">Đăng nhập để báo cáo</div>
+              )}
             </div>
           )}
         </div>
@@ -160,10 +181,13 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
             <Icon name="share" alt="" className="action-icon" />
           </button>
         </div>
-        <button className={`action-btn ${post.saved ? 'saved' : ''}`}
-          onClick={() => onSave?.(post.id)} aria-label={post.saved ? 'Bỏ lưu' : 'Lưu'}>
-          <Icon name="bookmark" alt="" className="action-icon" />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button className={`action-btn ${post.saved ? 'saved' : ''}`}
+            onClick={handleSave} aria-label={post.saved ? 'Bỏ lưu' : 'Lưu địa điểm'}>
+            <Icon name="bookmark" alt="" className="action-icon" />
+          </button>
+          {saveTip && <div className="post-save-tip" role="status">{saveTip}</div>}
+        </div>
       </div>
 
       <div className="post-body">
@@ -204,8 +228,14 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
           onClose={() => setIsEditing(false)} 
           onUpdated={(updatedPost) => {
             setIsEditing(false);
-            window.location.reload(); // Reload to refresh feed
+            window.location.reload();
           }} 
+        />
+      )}
+      {isReporting && (
+        <ReportPostModal
+          postId={post.id}
+          onClose={() => setIsReporting(false)}
         />
       )}
     </article>

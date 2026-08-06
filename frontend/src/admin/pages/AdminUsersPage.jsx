@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Ban, Clock3, KeyRound, RotateCcw, Search, ShieldAlert } from 'lucide-react';
+import { Ban, Clock3, History, KeyRound, RotateCcw, Search, ShieldAlert } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { getUserDisplayName } from '../../utils/userDisplay';
 import AdminPagination from '../components/AdminPagination';
 import { AdminEmpty, AdminError, AdminLoading } from '../components/AdminState';
+import AdminUserViolationsModal from '../components/AdminUserViolationsModal';
 
 const STATUSES = ['', 'ACTIVE', 'WARNING', 'SUSPENDED', 'BANNED', 'DELETED'];
 const ROLES = ['USER', 'SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'LOCATION_MODERATOR', 'SUPPORT', 'ANALYST'];
+
+function initialUserFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  const role = params.get('role');
+  return {
+    query: params.get('query') || '',
+    status: STATUSES.includes(status) ? status : '',
+    role: ROLES.includes(role) ? role : '',
+  };
+}
 
 function askReason(label) {
   const value = window.prompt(`Lý do ${label}:`);
@@ -16,11 +28,12 @@ function askReason(label) {
 export default function AdminUsersPage({ currentUser }) {
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ query: '', status: '', role: '' });
+  const [search, setSearch] = useState(() => initialUserFilters().query);
+  const [filters, setFilters] = useState(initialUserFilters);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [version, setVersion] = useState(0);
+  const [violationUser, setViolationUser] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -107,6 +120,7 @@ export default function AdminUsersPage({ currentUser }) {
           <td>{user.roles.map(role => <span className="admin-role" key={role}>{role}</span>)}</td>
           <td><strong>{user.postsCount} bài</strong><small>{user.followersCount} follower · {user.followingCount} following</small></td>
           <td><div className="admin-row-actions admin-row-actions-wrap">
+            <button type="button" onClick={() => setViolationUser(user)}><History size={14} /> Lịch sử</button>
             <button type="button" disabled={self || Boolean(busy)} onClick={() => act(user, 'warn')}><ShieldAlert size={14} /> Cảnh báo</button>
             <button type="button" disabled={self || Boolean(busy)} onClick={() => act(user, 'suspend')}><Clock3 size={14} /> Tạm khóa</button>
             {user.status === 'BANNED'
@@ -118,5 +132,6 @@ export default function AdminUsersPage({ currentUser }) {
       })}</tbody>
     </table></div>}
     {result && <AdminPagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
+    {violationUser && <AdminUserViolationsModal user={violationUser} onClose={() => setViolationUser(null)} />}
   </section>;
 }

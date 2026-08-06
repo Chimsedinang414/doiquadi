@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { api, getCurrentUser, uploadImage } from '../services/api';
 import Icon from '../styles/icon';
@@ -12,11 +12,20 @@ L.Icon.Default.mergeOptions({
 });
 
 function MapPicker({ position, setPosition }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (position) {
+      map.flyTo([position[0], position[1]], 15, { duration: 0.8 });
+    }
+  }, [map, position]);
+
   useMapEvents({
     click(e) {
       setPosition([e.latlng.lat, e.latlng.lng]);
     },
   });
+
   return position ? <Marker position={position} /> : null;
 }
 
@@ -34,6 +43,8 @@ export default function AddLocationPage({ onBack }) {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mapActionBusy, setMapActionBusy] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [form, setForm] = useState({
     name: '', category: '', address: '', phone: '',
     priceMin: '', priceMax: '', description: '',
@@ -51,6 +62,60 @@ export default function AddLocationPage({ onBack }) {
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSearchLocation = async (event) => {
+    event?.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) {
+      setError('Vui lòng nhập địa điểm hoặc tên đường để tìm kiếm');
+      return;
+    }
+
+    setMapActionBusy(true);
+    setError('');
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&countrycodes=vn&q=${encodeURIComponent(query)}`,
+      );
+      const data = await response.json();
+      if (!data?.length) {
+        throw new Error('Không tìm thấy kết quả phù hợp');
+      }
+
+      const result = data[0];
+      const nextPosition = [parseFloat(result.lat), parseFloat(result.lon)];
+      setMapPosition(nextPosition);
+      setForm(prev => ({ ...prev, address: result.display_name || prev.address || query }));
+      setSearchQuery(result.display_name || query);
+    } catch (err) {
+      setError(err.message || 'Không thể tìm kiếm địa điểm');
+    } finally {
+      setMapActionBusy(false);
+    }
+  };
+
+  const handleLocateCurrentPosition = () => {
+    if (!navigator.geolocation) {
+      setError('Trình duyệt của bạn chưa hỗ trợ định vị');
+      return;
+    }
+
+    setMapActionBusy(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextPosition = [position.coords.latitude, position.coords.longitude];
+        setMapPosition(nextPosition);
+        setSearchQuery('');
+        setMapActionBusy(false);
+      },
+      (err) => {
+        setMapActionBusy(false);
+        setError(err.code === 1 ? 'Bạn đã từ chối quyền định vị' : 'Không thể lấy vị trí hiện tại');
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   };
 
   const selectFiles = files => {
@@ -267,13 +332,36 @@ export default function AddLocationPage({ onBack }) {
 
         <div className="form-group">
           <label className="form-label">Ghim vị trí trên bản đồ *</label>
-          <div style={{ height: '300px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', marginBottom: '4px' }}>
+          <div className="map-picker-shell" style={{ marginBottom: '4px' }}>
             <MapContainer center={[21.0285, 105.8048]} zoom={13} style={{ width: '100%', height: '100%' }}>
               <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <MapPicker position={mapPosition} setPosition={setMapPosition} />
             </MapContainer>
+            <div className="map-picker-controls">
+              <form className="map-picker-search" onSubmit={handleSearchLocation}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Tìm địa điểm, đường, quận..."
+                  aria-label="Tìm kiếm địa điểm"
+                />
+                <button type="submit" disabled={mapActionBusy}>
+                  {mapActionBusy ? '...' : 'Tìm'}
+                </button>
+              </form>
+              <button
+                type="button"
+                className="map-picker-locate-btn"
+                onClick={handleLocateCurrentPosition}
+                disabled={mapActionBusy}
+                aria-label="Lấy vị trí hiện tại"
+              >
+                📍
+              </button>
+            </div>
           </div>
-          <small style={{ color: 'var(--text-secondary)' }}>Nhấn vào bản đồ để chọn vị trí chính xác của quán.</small>
+          <small style={{ color: 'var(--text-secondary)' }}>Nhấn vào bản đồ để chọn vị trí chính xác, hoặc dùng hộp tìm kiếm và nút định vị hiện tại.</small>
         </div>
 
         <div className="form-row">

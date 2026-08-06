@@ -1,17 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { EyeOff, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, FileText, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import AdminPagination from '../components/AdminPagination';
 import { AdminEmpty, AdminError, AdminLoading } from '../components/AdminState';
+import AdminTargetPreviewModal from '../components/AdminTargetPreviewModal';
+
+const STATUSES = ['', 'ACTIVE', 'UNDER_REVIEW', 'HIDDEN', 'DELETED'];
+
+function initialCommentFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  return {
+    query: params.get('query') || '',
+    status: STATUSES.includes(status) ? status : '',
+  };
+}
 
 export default function AdminCommentsPage() {
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ query: '', status: '' });
+  const [search, setSearch] = useState(() => initialCommentFilters().query);
+  const [filters, setFilters] = useState(initialCommentFilters);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [version, setVersion] = useState(0);
+  const [previewTarget, setPreviewTarget] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -37,7 +50,7 @@ export default function AdminCommentsPage() {
     <form className="admin-toolbar admin-filter-toolbar" onSubmit={event => { event.preventDefault(); setPage(0); setFilters(current => ({ ...current, query: search.trim() })); }}>
       <label><Search size={17} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nội dung hoặc người viết" /></label>
       <select value={filters.status} onChange={event => { setPage(0); setFilters(current => ({ ...current, status: event.target.value })); }}>
-        {['', 'ACTIVE', 'UNDER_REVIEW', 'HIDDEN', 'DELETED'].map(value => <option value={value} key={value || 'all'}>{value || 'Mọi trạng thái'}</option>)}
+        {STATUSES.map(value => <option value={value} key={value || 'all'}>{value || 'Mọi trạng thái'}</option>)}
       </select><button className="admin-primary-button" type="submit"><Search size={16} /> Tìm</button>
     </form>
     {error && <AdminError message={error} onRetry={() => setVersion(value => value + 1)} />}
@@ -47,9 +60,13 @@ export default function AdminCommentsPage() {
       <thead><tr><th>Bình luận</th><th>Ngữ cảnh</th><th>Tác giả</th><th>Trạng thái</th><th>Báo cáo</th><th>Thao tác</th></tr></thead>
       <tbody>{result.content.map(comment => <tr key={comment.id}>
         <td><strong>{comment.content}</strong><small>{new Date(comment.createdAt).toLocaleString('vi-VN')}</small></td>
-        <td>{comment.postTitle}<small>Post: {comment.postId}</small></td><td>{comment.authorUserName}</td>
+        <td>{comment.postTitle}<button type="button" className="admin-inline-link"
+          onClick={() => setPreviewTarget({ targetType: 'POST', targetId: comment.postId })}>
+          <FileText size={12} /> Post: {comment.postId}
+        </button></td><td>{comment.authorUserName}</td>
         <td><span className={`admin-badge ${comment.status === 'ACTIVE' ? 'success' : 'danger'}`}>{comment.status}</span></td><td>{comment.reportCount}</td>
         <td><div className="admin-row-actions">
+          <button type="button" onClick={() => setPreviewTarget({ targetType: 'COMMENT', targetId: comment.id })}><Eye size={14} /> Xem nhanh</button>
           {comment.status === 'ACTIVE' && <button disabled={busy === comment.id} onClick={() => act(comment, 'hide')}><EyeOff size={14} /> Ẩn</button>}
           {comment.status !== 'ACTIVE' && <button disabled={busy === comment.id} onClick={() => act(comment, 'restore')}><RotateCcw size={14} /> Khôi phục</button>}
           {comment.status !== 'DELETED' && <button disabled={busy === comment.id} onClick={() => act(comment, 'delete')}><Trash2 size={14} /> Xóa</button>}
@@ -57,5 +74,6 @@ export default function AdminCommentsPage() {
       </tr>)}</tbody>
     </table></div>}
     {result && <AdminPagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
+    {previewTarget && <AdminTargetPreviewModal {...previewTarget} onClose={() => setPreviewTarget(null)} />}
   </section>;
 }

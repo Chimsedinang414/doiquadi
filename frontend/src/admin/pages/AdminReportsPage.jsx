@@ -1,17 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Search, UserCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, Eye, Search, UserCheck, XCircle } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import AdminPagination from '../components/AdminPagination';
 import { AdminEmpty, AdminError, AdminLoading } from '../components/AdminState';
+import AdminTargetPreviewModal from '../components/AdminTargetPreviewModal';
+
+const REPORT_STATUSES = ['', 'PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED', 'APPEALED'];
+const TARGET_TYPES = ['', 'USER', 'POST', 'COMMENT', 'LOCATION', 'REVIEW', 'MEDIA'];
+
+function initialReportFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  const targetType = params.get('targetType');
+  return {
+    query: params.get('query') || '',
+    status: REPORT_STATUSES.includes(status) ? status : 'PENDING',
+    targetType: TARGET_TYPES.includes(targetType) ? targetType : '',
+  };
+}
 
 export default function AdminReportsPage() {
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ query: '', status: 'PENDING', targetType: '' });
+  const [search, setSearch] = useState(() => initialReportFilters().query);
+  const [filters, setFilters] = useState(initialReportFilters);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [version, setVersion] = useState(0);
+  const [previewTarget, setPreviewTarget] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -46,10 +62,10 @@ export default function AdminReportsPage() {
     <form className="admin-toolbar admin-filter-toolbar" onSubmit={event => { event.preventDefault(); setPage(0); setFilters(current => ({ ...current, query: search.trim() })); }}>
       <label><Search size={17} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="ID đối tượng, người báo cáo, mô tả" /></label>
       <select value={filters.status} onChange={event => { setPage(0); setFilters(current => ({ ...current, status: event.target.value })); }}>
-        {['', 'PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED', 'APPEALED'].map(value => <option value={value} key={value || 'all'}>{value || 'Mọi trạng thái'}</option>)}
+        {REPORT_STATUSES.map(value => <option value={value} key={value || 'all'}>{value || 'Mọi trạng thái'}</option>)}
       </select>
       <select value={filters.targetType} onChange={event => { setPage(0); setFilters(current => ({ ...current, targetType: event.target.value })); }}>
-        {['', 'USER', 'POST', 'COMMENT', 'LOCATION', 'REVIEW', 'MEDIA'].map(value => <option value={value} key={value || 'all'}>{value || 'Mọi đối tượng'}</option>)}
+        {TARGET_TYPES.map(value => <option value={value} key={value || 'all'}>{value || 'Mọi đối tượng'}</option>)}
       </select><button className="admin-primary-button" type="submit">Tìm</button>
     </form>
     {error && <AdminError message={error} onRetry={() => setVersion(value => value + 1)} />}
@@ -59,7 +75,13 @@ export default function AdminReportsPage() {
       <thead><tr><th>Báo cáo</th><th>Đối tượng</th><th>Lý do</th><th>Trạng thái</th><th>Phụ trách</th><th>Thao tác</th></tr></thead>
       <tbody>{result.content.map(report => <tr key={report.id}>
         <td><strong>{report.reporterUserName}</strong><small>{report.description || new Date(report.createdAt).toLocaleString('vi-VN')}</small></td>
-        <td>{report.targetType}<small>{report.targetId}</small></td><td>{report.reason}</td>
+        <td><strong>{report.targetType}</strong>
+          <button type="button" className="admin-target-link"
+            onClick={() => setPreviewTarget({ targetType: report.targetType, targetId: report.targetId })}
+            title={`Xem nhanh ${report.targetType} ${report.targetId}`}>
+            <Eye size={13} /><span>{report.targetId}</span>
+          </button>
+        </td><td>{report.reason}</td>
         <td><span className={`admin-badge ${report.status === 'RESOLVED' ? 'success' : report.status === 'PENDING' ? 'warning' : 'danger'}`}>{report.status}</span></td>
         <td>{report.assignedAdminUserName || 'Chưa nhận'}</td>
         <td><div className="admin-row-actions">
@@ -72,5 +94,6 @@ export default function AdminReportsPage() {
       </tr>)}</tbody>
     </table></div>}
     {result && <AdminPagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
+    {previewTarget && <AdminTargetPreviewModal {...previewTarget} onClose={() => setPreviewTarget(null)} />}
   </section>;
 }
