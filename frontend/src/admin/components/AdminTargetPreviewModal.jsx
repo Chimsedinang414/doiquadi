@@ -62,6 +62,16 @@ function PostPreview({ data }) {
       <Status value={data.status} />
     </div>
     <div className="admin-preview-content">{data.content || 'Bài viết không có nội dung văn bản.'}</div>
+    {data.imageUrls?.length > 0 ? (
+      <div className="admin-preview-gallery" aria-label={`Ảnh bài viết (${data.imageUrls.length})`}>
+        {data.imageUrls.map((url, index) => (
+          <figure key={`${url}-${index}`}>
+            <img src={url} alt={`Ảnh ${index + 1} của bài viết ${data.title || ''}`} loading="lazy" />
+            <figcaption>Ảnh {index + 1}/{data.imageUrls.length}</figcaption>
+          </figure>
+        ))}
+      </div>
+    ) : <p className="admin-preview-notice">Bài viết này không có ảnh.</p>}
     <dl className="admin-preview-details">
       <Detail label="Địa điểm">{data.locationName}</Detail>
       <Detail label="Đánh giá">{data.rating == null ? '—' : `${data.rating}/5`}</Detail>
@@ -69,7 +79,6 @@ function PostPreview({ data }) {
       <Detail label="Ngày đăng">{formatDate(data.createdAt)}</Detail>
       {data.moderationReason && <Detail label="Lý do kiểm duyệt" wide>{data.moderationReason}</Detail>}
     </dl>
-    <p className="admin-preview-notice">API Admin hiện chỉ cung cấp nội dung văn bản, chưa cung cấp ảnh của bài viết.</p>
   </>;
 }
 

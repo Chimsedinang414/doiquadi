@@ -102,12 +102,14 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
     const userId = requireUser();
     if (!userId) return;
     try {
-      await api.addComment(postId, { userId, content });
+      const created = await api.addComment(postId, { userId, content });
       setPosts(previous => previous.map(post => post.id === postId
         ? { ...post, commentsCount: post.commentsCount + 1 }
         : post));
+      return created;
     } catch (err) {
       setError(err.message);
+      throw err;
     }
   };
 

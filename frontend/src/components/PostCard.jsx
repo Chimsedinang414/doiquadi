@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import Icon from '../styles/icon';
 import { getUserDisplayName, getUserInitial } from '../utils/userDisplay';
-import { getCurrentUser } from '../services/api';
+import { api, getCurrentUser } from '../services/api';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
 
@@ -14,6 +14,12 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
   const [isReporting, setIsReporting] = useState(false);
   const [saveTip, setSaveTip] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [comments, setComments] = useState([]);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentError, setCommentError] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
   const commentInputRef = useRef(null);
   const carouselRef = useRef(null);
 
@@ -24,10 +30,54 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
     background: `linear-gradient(135deg, ${post.colors?.[0] || '#f58529'}, ${post.colors?.[1] || '#dd2a7b'})`,
   };
 
-  const handleComment = () => {
-    if (!commentText.trim()) return;
-    onComment?.(post.id, commentText);
-    setCommentText('');
+  const loadComments = async () => {
+    if (commentsLoading) return;
+    setCommentsLoading(true);
+    setCommentError('');
+    try {
+      const result = await api.getComments(post.id);
+      setComments(Array.isArray(result) ? result : []);
+      setCommentsLoaded(true);
+    } catch (error) {
+      setCommentError(error.message);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const toggleComments = () => {
+    const willOpen = !commentsOpen;
+    setCommentsOpen(willOpen);
+    if (willOpen && !commentsLoaded) loadComments();
+  };
+
+  const openCommentsAndFocus = () => {
+    setCommentsOpen(true);
+    if (!commentsLoaded) loadComments();
+    commentInputRef.current?.focus();
+  };
+
+  const handleComment = async () => {
+    const content = commentText.trim();
+    if (!content || !onComment || commentSubmitting) return;
+    setCommentSubmitting(true);
+    setCommentError('');
+    try {
+      const created = await onComment(post.id, content);
+      if (!created) return;
+      setCommentText('');
+      setCommentsOpen(true);
+      if (commentsLoaded) {
+        setComments(current => current.some(comment => comment.id === created.id)
+          ? current : [...current, created]);
+      } else {
+        await loadComments();
+      }
+    } catch (error) {
+      setCommentError(error.message);
+    } finally {
+      setCommentSubmitting(false);
+    }
   };
 
   const handleShare = async () => {
@@ -174,7 +224,7 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
             {post.liked ? '❤️' : '🤍'}
           </button>
           <button className="action-btn" aria-label="Bình luận"
-            onClick={() => commentInputRef.current?.focus()}>
+            onClick={openCommentsAndFocus} aria-expanded={commentsOpen}>
             <Icon name="envelope" alt="" className="action-icon" />
           </button>
           <button className="action-btn" aria-label="Chia sẻ" onClick={handleShare}>
@@ -208,15 +258,49 @@ export default function PostCard({ post, onLike, onSave, onComment }) {
           {post.tags?.map(tag => <span key={tag} className="post-tag">{tag}</span>)}
         </div>
         {post.commentsCount > 0 && (
-          <div className="post-comment-count">Xem tất cả {post.commentsCount} bình luận</div>
+          <button className="post-comment-count" type="button" onClick={toggleComments}
+            aria-expanded={commentsOpen} aria-controls={`post-comments-${post.id}`}>
+            {commentsOpen ? 'Ẩn bình luận' : `Xem tất cả ${post.commentsCount} bình luận`}
+          </button>
+        )}
+        {commentsOpen && (
+          <div className="post-comments" id={`post-comments-${post.id}`} aria-live="polite">
+            {commentsLoading && <div className="post-comments-state">Đang tải bình luận...</div>}
+            {!commentsLoading && commentError && (
+              <div className="post-comments-state error">
+                <span>{commentError}</span>
+                {!commentsLoaded && <button type="button" onClick={loadComments}>Thử lại</button>}
+              </div>
+            )}
+            {!commentsLoading && !commentError && commentsLoaded && comments.length === 0 && (
+              <div className="post-comments-state">Chưa có bình luận. Hãy là người đầu tiên bình luận.</div>
+            )}
+            {comments.map(comment => (
+              <div className="post-comment" key={comment.id}>
+                <span className="post-comment-avatar">
+                  {comment.author?.avatar
+                    ? <img src={comment.author.avatar} alt="" />
+                    : getUserInitial(comment.author)}
+                </span>
+                <div className="post-comment-copy">
+                  <div><strong>{getUserDisplayName(comment.author, 'Người dùng')}</strong>{' '}{comment.content}</div>
+                  <time dateTime={comment.createdAt || undefined}>
+                    {comment.createdAt ? new Date(comment.createdAt).toLocaleString('vi-VN') : ''}
+                  </time>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         <div className="post-add-comment">
           <input ref={commentInputRef} type="text" className="post-comment-input"
             placeholder="Thêm bình luận..." value={commentText}
             onChange={event => setCommentText(event.target.value)}
-            onKeyDown={event => event.key === 'Enter' && handleComment()} />
+            onKeyDown={event => event.key === 'Enter' && handleComment()}
+            disabled={commentSubmitting} />
           {commentText && (
-            <button className="post-comment-submit visible" type="button" onClick={handleComment}>Đăng</button>
+            <button className="post-comment-submit visible" type="button" onClick={handleComment}
+              disabled={commentSubmitting}>{commentSubmitting ? 'Đang đăng...' : 'Đăng'}</button>
           )}
         </div>
         <div className="post-time">{post.time}</div>

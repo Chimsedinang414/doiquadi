@@ -12,6 +12,7 @@ import com.localfood.repository.CommentRepository;
 import com.localfood.repository.FoodRepository;
 import com.localfood.repository.LocationRepository;
 import com.localfood.repository.PostRepository;
+import com.localfood.repository.PostImageRepository;
 import com.localfood.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +49,7 @@ class ReportServiceTest {
         PostRepository postRepository = mock(PostRepository.class);
         AdminModerationService moderationService = new AdminModerationService(
                 postRepository,
+                mock(PostImageRepository.class),
                 mock(CommentRepository.class),
                 mock(LocationRepository.class),
                 mock(FoodRepository.class),

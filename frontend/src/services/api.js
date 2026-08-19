@@ -111,6 +111,7 @@ export const api = {
   getFollowing: userId => client.get('/users/' + userId + '/following').then(response => response.data),
   toggleFollow: followingId => client.put('/follows', { followingId }).then(response => response.data),
   getPost: id => client.get('/posts/' + id).then(response => response.data),
+  getComments: postId => client.get('/posts/' + postId + '/comments').then(response => response.data),
   createPost: data => client.post('/posts', data).then(response => response.data),
   updatePost: (postId, data) => client.put('/posts/' + postId, data).then(response => response.data),
   addComment: (postId, data) => client.post('/posts/' + postId + '/comments', data).then(response => response.data),
