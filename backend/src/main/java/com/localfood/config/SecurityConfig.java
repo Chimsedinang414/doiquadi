@@ -64,6 +64,7 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole(
                                 "SUPER_ADMIN", "ADMIN", "MODERATOR", "LOCATION_MODERATOR", "SUPPORT", "ANALYST")
                         .requestMatchers("/oauth2/links", "/oauth2/links/**").authenticated()

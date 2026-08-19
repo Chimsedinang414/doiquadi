@@ -1,7 +1,9 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
 
-const WS_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const WS_ENDPOINT = import.meta.env.VITE_WS_BASE_URL
+  || `${API_BASE_URL.replace(/\/$/, '')}/ws`;
 
 class WebSocketService {
   constructor() {
@@ -15,7 +17,7 @@ class WebSocketService {
     if (this.client?.active) return;
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS(WS_BASE_URL.replace('/api', '') + '/ws'),
+      webSocketFactory: () => new SockJS(WS_ENDPOINT),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
