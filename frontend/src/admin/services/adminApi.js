@@ -16,11 +16,13 @@ export const adminApi = {
   updateUserRoles: (id, roles) => client.put(`/admin/users/${encodeURIComponent(id)}/roles`, { roles }).then(r => r.data),
 
   getPosts: params => client.get('/admin/posts', { params }).then(response => response.data),
+  getPost: id => client.get(`/admin/posts/${encodeURIComponent(id)}`).then(response => response.data),
   hidePost: (id, reason) => client.patch(`/admin/posts/${encodeURIComponent(id)}/hide`, { reason }).then(r => r.data),
   restorePost: (id, reason) => client.patch(`/admin/posts/${encodeURIComponent(id)}/restore`, { reason }).then(r => r.data),
   deletePost: (id, reason) => client.delete(`/admin/posts/${encodeURIComponent(id)}`, { data: { reason } }).then(r => r.data),
 
   getComments: params => client.get('/admin/comments', { params }).then(response => response.data),
+  getComment: id => client.get(`/admin/comments/${encodeURIComponent(id)}`).then(response => response.data),
   hideComment: (id, reason) => client.patch(`/admin/comments/${encodeURIComponent(id)}/hide`, { reason }).then(r => r.data),
   restoreComment: (id, reason) => client.patch(`/admin/comments/${encodeURIComponent(id)}/restore`, { reason }).then(r => r.data),
   deleteComment: (id, reason) => client.delete(`/admin/comments/${encodeURIComponent(id)}`, { data: { reason } }).then(r => r.data),
@@ -31,6 +33,7 @@ export const adminApi = {
   rejectReport: (id, note) => client.patch(`/admin/reports/${encodeURIComponent(id)}/reject`, { note, action: 'NONE' }).then(r => r.data),
 
   getLocations: params => client.get('/admin/locations', { params }).then(response => response.data),
+  getLocation: id => client.get(`/admin/locations/${encodeURIComponent(id)}`).then(response => response.data),
   approveLocation: (id, reason) => client.patch(`/admin/locations/${encodeURIComponent(id)}/approve`, { reason }).then(r => r.data),
   rejectLocation: (id, reason) => client.patch(`/admin/locations/${encodeURIComponent(id)}/reject`, { reason }).then(r => r.data),
   updateLocationStatus: (id, status, reason) => client.patch(`/admin/locations/${encodeURIComponent(id)}/status`, { status, reason }).then(r => r.data),

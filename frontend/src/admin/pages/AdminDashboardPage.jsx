@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Activity,
+  ArrowUpRight,
   CalendarDays,
   MapPinned,
   Newspaper,
@@ -15,16 +16,20 @@ import { adminApi } from '../services/adminApi';
 import { AdminError, AdminLoading } from '../components/AdminState';
 import { getUserDisplayName } from '../../utils/userDisplay';
 
+const USER_MANAGER_ROLES = ['SUPER_ADMIN', 'ADMIN'];
+const CONTENT_MODERATOR_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'];
+const LOCATION_MODERATOR_ROLES = ['SUPER_ADMIN', 'ADMIN', 'LOCATION_MODERATOR'];
+
 const METRICS = [
-  ['users', 'Tổng người dùng', Users, 'Toàn hệ thống'],
-  ['activeUsers', 'Đang hoạt động', UserCheck, 'Hiện tại'],
-  ['posts', 'Bài viết', Newspaper, 'Đang hiển thị'],
-  ['comments', 'Bình luận', MessageSquare, 'Đang hiển thị'],
-  ['locations', 'Địa điểm', MapPinned, 'Đã xác minh'],
-  ['pendingReports', 'Báo cáo chờ xử lý', Flag, 'Cần xử lý'],
+  ['users', 'Tổng người dùng', Users, 'Toàn hệ thống', 'users', {}, USER_MANAGER_ROLES],
+  ['activeUsers', 'Đang hoạt động', UserCheck, 'Hiện tại', 'users', { status: 'ACTIVE' }, USER_MANAGER_ROLES],
+  ['posts', 'Bài viết', Newspaper, 'Đang hiển thị', 'posts', { status: 'ACTIVE' }, CONTENT_MODERATOR_ROLES],
+  ['comments', 'Bình luận', MessageSquare, 'Đang hiển thị', 'comments', { status: 'ACTIVE' }, CONTENT_MODERATOR_ROLES],
+  ['locations', 'Địa điểm', MapPinned, 'Đã xác minh', 'locations', { status: 'VERIFIED' }, LOCATION_MODERATOR_ROLES],
+  ['pendingReports', 'Báo cáo chờ xử lý', Flag, 'Cần xử lý', 'reports', { status: 'PENDING' }, CONTENT_MODERATOR_ROLES],
 ];
 
-export default function AdminDashboardPage({ user }) {
+export default function AdminDashboardPage({ user, onNavigate }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
@@ -69,14 +74,19 @@ export default function AdminDashboardPage({ user }) {
       {error && <AdminError message={error} onRetry={() => setVersion(value => value + 1)} />}
       {data && <>
         <div className="admin-metric-grid">
-          {METRICS.map(([key, label, MetricIcon, trend]) => (
-            <article className="admin-metric-card" key={key}>
+          {METRICS.map(([key, label, MetricIcon, trend, section, filters, roles]) => {
+            const canOpen = roles.some(role => user?.roles?.includes(role));
+            const MetricCard = canOpen ? 'button' : 'article';
+            return <MetricCard type={canOpen ? 'button' : undefined}
+              className={`admin-metric-card${canOpen ? ' is-link' : ''}`} key={key}
+              onClick={canOpen ? () => onNavigate(section, filters) : undefined}
+              aria-label={canOpen ? `Mở trang ${label}` : undefined}>
               <div className="admin-metric-icon"><MetricIcon size={20} strokeWidth={1.8} /></div>
-              <span className="admin-metric-trend">{trend}</span>
+              <span className="admin-metric-trend">{trend}{canOpen && <ArrowUpRight size={12} />}</span>
               <strong>{Number(summary[key] || 0).toLocaleString('vi-VN')}</strong>
               <p>{label}</p>
-            </article>
-          ))}
+            </MetricCard>;
+          })}
         </div>
 
         <div className="admin-analytics-grid">

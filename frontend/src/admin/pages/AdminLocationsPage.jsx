@@ -6,11 +6,20 @@ import { AdminEmpty, AdminError, AdminLoading } from '../components/AdminState';
 
 const STATES = ['', 'PENDING', 'VERIFIED', 'REJECTED', 'TEMPORARILY_CLOSED', 'PERMANENTLY_CLOSED'];
 
+function initialLocationFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  return {
+    query: params.get('query') || '',
+    status: STATES.includes(status) ? status : 'PENDING',
+  };
+}
+
 export default function AdminLocationsPage() {
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ query: '', status: 'PENDING' });
+  const [search, setSearch] = useState(() => initialLocationFilters().query);
+  const [filters, setFilters] = useState(initialLocationFilters);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [version, setVersion] = useState(0);

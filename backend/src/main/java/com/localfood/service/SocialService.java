@@ -427,7 +427,7 @@ public class SocialService {
                 images,
                 tags,
                 likeRepository.countByPost_Id(post.getId()),
-                commentRepository.countByPost_Id(post.getId()));
+                commentRepository.countByPost_IdAndStatus(post.getId(), ContentStatus.ACTIVE));
     }
 
     private SocialDtos.CommentResponse toCommentResponse(Comment comment) {

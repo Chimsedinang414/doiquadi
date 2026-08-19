@@ -23,12 +23,18 @@ export default function AdminPanel({ user, onExit }) {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-  const changeSection = next => {
-    window.history.pushState({}, document.title, next === 'dashboard' ? '/admin' : `/admin/${next}`);
+  const changeSection = (next, filters = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value != null && value !== '') query.set(key, value);
+    });
+    const path = next === 'dashboard' ? '/admin' : `/admin/${next}`;
+    const search = query.toString();
+    window.history.pushState({}, document.title, search ? `${path}?${search}` : path);
     setSection(next);
   };
   const pages = {
-    dashboard: <AdminDashboardPage user={user} />,
+    dashboard: <AdminDashboardPage user={user} onNavigate={changeSection} />,
     users: <AdminUsersPage currentUser={user} />,
     posts: <AdminPostsPage />,
     comments: <AdminCommentsPage />,

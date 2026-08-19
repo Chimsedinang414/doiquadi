@@ -13,6 +13,7 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, String> {
     List<Comment> findByPost_IdOrderByCreatedAtAsc(String postId);
     long countByPost_Id(String postId);
+    long countByPost_IdAndStatus(String postId, ContentStatus status);
     List<Comment> findByPost_IdAndStatusOrderByCreatedAtAsc(String postId, ContentStatus status);
     long countByStatus(ContentStatus status);
     long countByCreatedAtAfter(LocalDateTime createdAfter);

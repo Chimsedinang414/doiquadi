@@ -1,19 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { EyeOff, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import AdminPagination from '../components/AdminPagination';
 import { AdminEmpty, AdminError, AdminLoading } from '../components/AdminState';
+import AdminTargetPreviewModal from '../components/AdminTargetPreviewModal';
 
 const STATUSES = ['', 'ACTIVE', 'UNDER_REVIEW', 'HIDDEN', 'DELETED'];
+
+function initialPostFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  return {
+    query: params.get('query') || '',
+    status: STATUSES.includes(status) ? status : '',
+  };
+}
 
 export default function AdminPostsPage() {
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ query: '', status: '' });
+  const [search, setSearch] = useState(() => initialPostFilters().query);
+  const [filters, setFilters] = useState(initialPostFilters);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [version, setVersion] = useState(0);
+  const [previewPostId, setPreviewPostId] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -53,6 +64,7 @@ export default function AdminPostsPage() {
         <td><span className={`admin-badge ${post.status === 'ACTIVE' ? 'success' : 'danger'}`}>{post.status}</span><small>{post.moderationReason || ''}</small></td>
         <td>{post.reportCount}</td><td>{post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
         <td><div className="admin-row-actions">
+          <button type="button" onClick={() => setPreviewPostId(post.id)}><Eye size={14} /> Xem nhanh</button>
           {post.status === 'ACTIVE' && <button disabled={busy === post.id} onClick={() => act(post, 'hide')}><EyeOff size={14} /> Ẩn</button>}
           {post.status !== 'ACTIVE' && <button disabled={busy === post.id} onClick={() => act(post, 'restore')}><RotateCcw size={14} /> Khôi phục</button>}
           {post.status !== 'DELETED' && <button disabled={busy === post.id} onClick={() => act(post, 'delete')}><Trash2 size={14} /> Xóa</button>}
@@ -60,5 +72,7 @@ export default function AdminPostsPage() {
       </tr>)}</tbody>
     </table></div>}
     {result && <AdminPagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
+    {previewPostId && <AdminTargetPreviewModal targetType="POST" targetId={previewPostId}
+      onClose={() => setPreviewPostId(null)} />}
   </section>;
 }

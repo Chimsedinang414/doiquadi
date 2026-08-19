@@ -111,6 +111,7 @@ export const api = {
   getFollowing: userId => client.get('/users/' + userId + '/following').then(response => response.data),
   toggleFollow: followingId => client.put('/follows', { followingId }).then(response => response.data),
   getPost: id => client.get('/posts/' + id).then(response => response.data),
+  getComments: postId => client.get('/posts/' + postId + '/comments').then(response => response.data),
   createPost: data => client.post('/posts', data).then(response => response.data),
   updatePost: (postId, data) => client.put('/posts/' + postId, data).then(response => response.data),
   addComment: (postId, data) => client.post('/posts/' + postId + '/comments', data).then(response => response.data),
@@ -137,6 +138,9 @@ export const api = {
   startOAuthLink: provider => client.post(`/oauth2/links/${encodeURIComponent(provider)}/start`)
     .then(response => response.data),
   updateProfile: (userId, data) => client.put('/users/' + userId, data).then(response => response.data),
+
+  // ── Reports ──────────────────────────────────────────────────
+  createReport: data => client.post('/reports', data).then(response => response.data),
 
   // ── Messaging ───────────────────────────────────────────────
   getMutualFollows: userId => client.get('/messaging/mutual-follows', { params: { userId } }).then(r => r.data),
@@ -191,7 +195,8 @@ export function updateCurrentUser(user) {
   window.dispatchEvent(new Event('auth-changed'));
 }
 
-export function toPostView(post) {
+export function toPostView(post, savedLocationIds) {
+  const locationId = post.location?.id;
   return {
     id: post.id,
     restaurantName: post.location?.name || post.title,
@@ -202,12 +207,12 @@ export function toPostView(post) {
     likes: post.likes || 0,
     commentsCount: post.comments || 0,
     liked: false,
-    saved: false,
+    saved: !!(locationId && savedLocationIds && savedLocationIds.has(locationId)),
     tags: (post.tags || []).map(tag => tag.startsWith('#') ? tag : '#' + tag),
     description: post.content || post.title,
     time: post.createdAt ? new Date(post.createdAt).toLocaleString('vi-VN') : '',
     open: true,
-    locationId: post.location?.id,
+    locationId,
     author: post.author,
     imageUrl: post.imageUrls?.[0],
     imageUrls: post.imageUrls || [],

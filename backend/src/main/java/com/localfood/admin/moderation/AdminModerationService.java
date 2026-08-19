@@ -12,11 +12,13 @@ import com.localfood.model.FoodStatus;
 import com.localfood.model.Location;
 import com.localfood.model.LocationStatus;
 import com.localfood.model.Post;
+import com.localfood.model.PostImage;
 import com.localfood.model.User;
 import com.localfood.repository.CommentRepository;
 import com.localfood.repository.FoodRepository;
 import com.localfood.repository.LocationRepository;
 import com.localfood.repository.PostRepository;
+import com.localfood.repository.PostImageRepository;
 import com.localfood.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminModerationService {
     private final PostRepository postRepository;
+    private final PostImageRepository postImageRepository;
     private final CommentRepository commentRepository;
     private final LocationRepository locationRepository;
     private final FoodRepository foodRepository;
@@ -137,7 +140,9 @@ public class AdminModerationService {
                 post.getId(), post.getUser().getId(), post.getUser().getUserName(),
                 post.getTitle(), post.getContent(),
                 post.getLocation() == null ? null : post.getLocation().getName(),
-                post.getRating(), post.getStatus(), post.getModerationReason(),
+                post.getRating(), postImageRepository.findByPost_Id(post.getId()).stream()
+                        .map(PostImage::getImageUrl).toList(),
+                post.getStatus(), post.getModerationReason(),
                 reportRepository.countByTargetTypeAndTargetId(ReportTargetType.POST, post.getId()),
                 post.getCreatedAt());
     }
