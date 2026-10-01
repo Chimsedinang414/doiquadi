@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: localfood-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=70.0 -XX:+UseSerialGC -Dfile.encoding=UTF-8
+      - key: JPA_DDL_AUTO
+        value: none
+      - key: SQL_INIT_MODE
+        value: always
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: OAUTH2_FRONTEND_REDIRECT_URI
+        sync: false
+      - key: OAUTH2_COOKIE_SECURE
+        value: "true"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_CLIENT_ID
+        sync: false
+      - key: FACEBOOK_CLIENT_SECRET
+        sync: false
+      - key: PASSWORD_RESET_ENABLED
+        value: "false"
+      - key: PASSWORD_RESET_FRONTEND_URI
+        sync: false
+      - key: STORAGE_ENABLED
+        sync: false
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_REGION
+        value: auto
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      - key: STORAGE_PUBLIC_BASE_URL
+        sync: false
+      - key: STORAGE_PATH_STYLE
+        value: "true"

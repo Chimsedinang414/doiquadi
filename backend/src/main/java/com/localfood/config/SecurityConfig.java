@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localfood.dto.ApiError;
 import com.localfood.security.AppleAuthorizationCodeTokenResponseClient;
 import com.localfood.security.JwtAuthenticationFilter;
+import com.localfood.security.RateLimitFilter;
 import com.localfood.security.OAuth2LoginFailureHandler;
 import com.localfood.security.OAuth2LoginSuccessHandler;
 import com.localfood.security.ProviderAuthorizationRequestResolver;
@@ -42,6 +43,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
+            RateLimitFilter rateLimitFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             SignedCookieAuthorizationRequestRepository authorizationRequestRepository,
             ProviderAuthorizationRequestResolver authorizationRequestResolver,
@@ -64,6 +66,7 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole(
                                 "SUPER_ADMIN", "ADMIN", "MODERATOR", "LOCATION_MODERATOR", "SUPPORT", "ANALYST")
                         .requestMatchers("/oauth2/links", "/oauth2/links/**").authenticated()
@@ -90,6 +93,7 @@ public class SecurityConfig {
                         .successHandler(successHandler)
                         .failureHandler(failureHandler)
                 )
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
