@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.localfood.dto.ApiError;
 import com.localfood.security.AppleAuthorizationCodeTokenResponseClient;
 import com.localfood.security.JwtAuthenticationFilter;
+import com.localfood.security.RateLimitFilter;
 import com.localfood.security.OAuth2LoginFailureHandler;
 import com.localfood.security.OAuth2LoginSuccessHandler;
 import com.localfood.security.ProviderAuthorizationRequestResolver;
@@ -42,6 +43,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
+            RateLimitFilter rateLimitFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             SignedCookieAuthorizationRequestRepository authorizationRequestRepository,
             ProviderAuthorizationRequestResolver authorizationRequestResolver,
@@ -91,6 +93,7 @@ public class SecurityConfig {
                         .successHandler(successHandler)
                         .failureHandler(failureHandler)
                 )
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
