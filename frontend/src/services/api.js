@@ -139,6 +139,13 @@ export const api = {
     .then(response => response.data),
   updateProfile: (userId, data) => client.put('/users/' + userId, data).then(response => response.data),
 
+  // ── Checkins & Collections ──────────────────────────────────
+  checkin: data => client.post('/checkins', data).then(response => response.data),
+  getCheckins: userId => client.get('/users/' + userId + '/checkins').then(response => response.data),
+  createCollection: data => client.post('/collections', data).then(response => response.data),
+  getCollections: userId => client.get('/users/' + userId + '/collections').then(response => response.data),
+  addCollectionItem: (collectionId, data) => client.post('/collections/' + collectionId + '/items', data).then(response => response.data),
+
   // ── Reports ──────────────────────────────────────────────────
   createReport: data => client.post('/reports', data).then(response => response.data),
 

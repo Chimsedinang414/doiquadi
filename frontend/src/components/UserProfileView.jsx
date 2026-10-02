@@ -33,6 +33,10 @@ const copy = {
   emptyLocationsTitle: 'Chưa có địa điểm',
   emptyLocationsOwn: 'Thêm địa điểm quán ăn bạn yêu thích.',
   emptyLocationsOther: 'Người dùng này chưa thêm địa điểm nào.',
+  checkinTab: 'CHECK-IN',
+  collectionTab: 'BỘ SƯU TẬP',
+  emptyCheckins: 'Chưa có lượt check-in nào.',
+  emptyCollections: 'Chưa có bộ sưu tập nào.',
 };
 
 const formatCount = value => new Intl.NumberFormat('vi-VN').format(value || 0);
@@ -63,6 +67,8 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
   
   const [activeTab, setActiveTab] = useState('posts');
   const [locations, setLocations] = useState([]);
+  const [checkins, setCheckins] = useState([]);
+  const [collections, setCollections] = useState([]);
   const [editingPost, setEditingPost] = useState(null);
   const [editingLocation, setEditingLocation] = useState(null);
 
@@ -77,6 +83,14 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
       
     api.getMyLocations(userId)
       .then(setLocations)
+      .catch(console.error);
+
+    api.getCheckins(userId)
+      .then(setCheckins)
+      .catch(console.error);
+
+    api.getCollections(userId)
+      .then(setCollections)
       .catch(console.error);
   }, [userId, viewer?.id]);
 
@@ -340,6 +354,14 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
           <Icon name="marker" alt="" className="inline-icon" />
           {copy.locationTab}
         </button>
+        <button className={activeTab === 'checkins' ? 'active' : ''} type="button" onClick={() => setActiveTab('checkins')}>
+          <Icon name="thumbtack" alt="" className="inline-icon" />
+          {copy.checkinTab}
+        </button>
+        <button className={activeTab === 'collections' ? 'active' : ''} type="button" onClick={() => setActiveTab('collections')}>
+          <Icon name="bookmark" alt="" className="inline-icon" />
+          {copy.collectionTab}
+        </button>
       </div>
 
       {activeTab === 'posts' && (
@@ -410,6 +432,61 @@ export default function UserProfileView({ userId, viewer, onNavigateToDetail, on
             <span className="ig-profile-empty-icon"><Icon name="marker" alt="" /></span>
             <h2>{copy.emptyLocationsTitle}</h2>
             <p>{isOwnProfile ? copy.emptyLocationsOwn : copy.emptyLocationsOther}</p>
+          </div>
+        )
+      )}
+
+      {activeTab === 'checkins' && (
+        checkins.length ? (
+          <div className="ig-profile-grid">
+            {checkins.map((chk, index) => (
+              <div key={`${chk.location.id}-${index}`} className="ig-profile-post-wrapper">
+                <button className="ig-profile-post" type="button" onClick={() => onNavigateToDetail(chk.location.id)}>
+                  <div className="ig-profile-post-fallback" style={{ background: 'linear-gradient(135deg, #107c10, #8bc34a)' }}>
+                    <Icon name="thumbtack" alt="" className="profile-grid-picture-icon" style={{ fill: 'white' }} />
+                    <strong style={{ color: 'white' }}>{chk.location.name}</strong>
+                  </div>
+                  <span className="ig-profile-post-overlay">
+                    <strong>{new Date(chk.time).toLocaleDateString('vi-VN')}</strong>
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="ig-profile-empty">
+            <span className="ig-profile-empty-icon"><Icon name="thumbtack" alt="" /></span>
+            <h2>{copy.emptyCheckins}</h2>
+          </div>
+        )
+      )}
+
+      {activeTab === 'collections' && (
+        collections.length ? (
+          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', padding: '16px 0' }}>
+            {collections.map(col => (
+              <div key={col.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '16px', background: '#fff' }}>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem' }}>{col.title}</h3>
+                {col.locations?.length > 0 ? (
+                  <ul style={{ paddingLeft: '20px', margin: 0, color: '#666' }}>
+                    {col.locations.map(loc => (
+                      <li key={loc.id}>
+                        <button onClick={() => onNavigateToDetail(loc.id)} style={{ border: 'none', background: 'none', color: '#f58529', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                          {loc.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: '#999', fontSize: '0.9rem' }}>Trống</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="ig-profile-empty">
+            <span className="ig-profile-empty-icon"><Icon name="bookmark" alt="" /></span>
+            <h2>{copy.emptyCollections}</h2>
           </div>
         )
       )}
