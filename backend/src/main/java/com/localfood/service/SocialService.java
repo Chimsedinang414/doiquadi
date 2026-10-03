@@ -66,11 +66,25 @@ public class SocialService {
     private final LocationRepository locationRepository;
     private final StorageService storageService;
 
-    public List<SocialDtos.PostResponse> getPosts() {
-        return postRepository.findByStatusOrderByCreatedAtDesc(ContentStatus.ACTIVE)
-                .stream().map(this::toPostResponse).toList();
+    public SocialDtos.PaginatedResponse<SocialDtos.PostResponse> getPosts(int page, int size) {
+        var postPage = postRepository.findByStatusOrderByCreatedAtDesc(ContentStatus.ACTIVE, PageRequest.of(page, size));
+        List<SocialDtos.PostResponse> content = postPage.getContent().stream().map(this::toPostResponse).toList();
+        return new SocialDtos.PaginatedResponse<>(
+                content,
+                postPage.getNumber(),
+                postPage.getSize(),
+                postPage.getTotalElements(),
+                postPage.getTotalPages(),
+                postPage.isLast()
+        );
     }
 
+    
+    public SocialDtos.PaginatedResponse<SocialDtos.PostResponse> getPostsByLocation(String locationId, int page, int size) {
+        var postPage = postRepository.findByLocation_IdAndStatusOrderByCreatedAtDesc(locationId, ContentStatus.ACTIVE, org.springframework.data.domain.PageRequest.of(page, size));
+        java.util.List<SocialDtos.PostResponse> content = postPage.getContent().stream().map(this::toPostResponse).toList();
+        return new SocialDtos.PaginatedResponse<>(content, postPage.getNumber(), postPage.getSize(), postPage.getTotalElements(), postPage.getTotalPages(), postPage.isLast());
+    }
     public SocialDtos.PostResponse getPost(String postId) {
         return toPostResponse(requirePost(postId));
     }
@@ -494,3 +508,5 @@ public class SocialService {
         return collectionRepository.findById(id).orElseThrow(() -> new AppException("Không tìm thấy bộ sưu tập"));
     }
 }
+
+

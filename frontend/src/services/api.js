@@ -104,7 +104,8 @@ client.interceptors.response.use(response => response, async error => {
 });
 
 export const api = {
-  getPosts: () => client.get('/posts').then(response => response.data),
+  getPosts: (page = 0, size = 10) => client.get('/posts', { params: { page, size } }).then(response => response.data),
+  getPostsByLocation: (locationId, page = 0, size = 10) => client.get(`/locations/${locationId}/posts`, { params: { page, size } }).then(response => response.data),
   getProfile: (userId, viewerId) => client.get('/users/' + userId + '/profile', { params: viewerId ? { viewerId } : {} }).then(response => response.data),
   searchUsers: query => client.get('/users/search', { params: { query } }).then(response => response.data),
   getFollowers: userId => client.get('/users/' + userId + '/followers').then(response => response.data),

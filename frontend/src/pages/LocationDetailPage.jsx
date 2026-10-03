@@ -19,10 +19,10 @@ export default function LocationDetailPage({ locationId, onBack }) {
 
   useEffect(() => {
     setError('');
-    Promise.all([api.getLocation(locationId), api.getPosts()])
+    Promise.all([api.getLocation(locationId), api.getPostsByLocation(locationId)])
       .then(([locationData, postData]) => {
         setLocation(locationData);
-        setPosts(postData.filter(post => post.location?.id === locationId).map(toPostView));
+        setPosts(postData.content.map(toPostView));
       })
       .catch(err => setError(err.message));
       
