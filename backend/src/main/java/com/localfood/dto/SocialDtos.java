@@ -16,6 +16,15 @@ public final class SocialDtos {
     private SocialDtos() {
     }
 
+    public record PaginatedResponse<T>(
+            List<T> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean last
+    ) {}
+
     public record CreatePostRequest(
             @NotBlank String userId,
             String locationId,

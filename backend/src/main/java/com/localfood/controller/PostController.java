@@ -25,8 +25,10 @@ public class PostController {
     private final SocialService socialService;
 
     @GetMapping
-    public List<SocialDtos.PostResponse> findAll() {
-        return socialService.getPosts();
+    public SocialDtos.PaginatedResponse<SocialDtos.PostResponse> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return socialService.getPosts(page, size);
     }
 
     @GetMapping("/{postId}")

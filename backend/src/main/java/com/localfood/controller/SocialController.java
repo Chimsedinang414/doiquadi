@@ -22,6 +22,13 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class SocialController {
+    @GetMapping("/locations/{locationId}/posts")
+    public SocialDtos.PaginatedResponse<SocialDtos.PostResponse> getPostsByLocation(
+            @PathVariable String locationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return socialService.getPostsByLocation(locationId, page, size);
+    }
     private final SocialService socialService;
 
     @PutMapping("/follows")
@@ -110,3 +117,4 @@ public class SocialController {
         return socialService.markNotificationRead(notificationId, userId);
     }
 }
+

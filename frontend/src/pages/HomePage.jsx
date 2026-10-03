@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import StoryBar from '../components/StoryBar';
 import PostCard from '../components/PostCard';
 import RightSidebar from '../components/RightSidebar';
@@ -11,42 +11,60 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
   const [savedLocationIds, setSavedLocationIds] = useState(new Set());
   const loadMoreRef = useRef(null);
   const currentUser = getCurrentUser();
 
-  useEffect(() => {
-    const loadFeed = async () => {
-      try {
-        const [postsData, favoritesData] = await Promise.all([
-          api.getPosts(),
-          currentUser?.id ? api.getFavorites(currentUser.id).catch(() => []) : Promise.resolve([]),
-        ]);
-        const savedIds = new Set(favoritesData.map(fav => fav.location?.id).filter(Boolean));
-        setSavedLocationIds(savedIds);
-        setPosts(postsData.map(post => toPostView(post, savedIds)));
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadFeed();
-  }, [currentUser?.id]);
+  const fetchPosts = useCallback(async (pageNum) => {
+    try {
+      if (pageNum === 0) setLoading(true);
+      else setLoadingMore(true);
 
-  const visiblePosts = useMemo(() => posts.slice(0, visibleCount), [posts, visibleCount]);
+      const [postsResponse, favoritesData] = await Promise.all([
+        api.getPosts(pageNum, 10), // Page, size=10
+        currentUser?.id && pageNum === 0 ? api.getFavorites(currentUser.id).catch(() => []) : Promise.resolve([]),
+      ]);
+
+      let savedIds = savedLocationIds;
+      if (pageNum === 0 && currentUser?.id) {
+        savedIds = new Set(favoritesData.map(fav => fav.location?.id).filter(Boolean));
+        setSavedLocationIds(savedIds);
+      }
+
+      // Format paginated response
+      const newPosts = postsResponse.content.map(post => toPostView(post, savedIds));
+
+      setPosts(prev => pageNum === 0 ? newPosts : [...prev, ...newPosts]);
+      setHasMore(!postsResponse.last);
+      setPage(pageNum);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [currentUser?.id, savedLocationIds]);
+
+  useEffect(() => {
+    fetchPosts(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]); // Re-fetch on user change
 
   useEffect(() => {
     const target = loadMoreRef.current;
-    if (!target || visibleCount >= posts.length) return undefined;
+    if (!target || !hasMore || loading || loadingMore) return undefined;
     const observer = new IntersectionObserver(entries => {
-      if (entries[0]?.isIntersecting) setVisibleCount(previous => Math.min(previous + 4, posts.length));
+      if (entries[0]?.isIntersecting) {
+        fetchPosts(page + 1);
+      }
     }, { rootMargin: '240px' });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [posts.length, visibleCount]);
+  }, [hasMore, loading, loadingMore, page, fetchPosts]);
 
   const openComposer = () => {
     if (!currentUser?.id) {
@@ -115,7 +133,6 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
 
   const handleCreated = created => {
     setPosts(previous => [toPostView(created, savedLocationIds), ...previous]);
-    setVisibleCount(previous => previous + 1);
     setComposerOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -146,12 +163,12 @@ export default function HomePage({ onProfileOpen, onAuthNavigate }) {
               <button type="button" onClick={openComposer}>Tạo bài viết đầu tiên</button>
             </div>
           )}
-          {visiblePosts.map(post => (
+          {posts.map(post => (
             <PostCard key={post.id} post={post} onLike={handleLike} onSave={handleSave}
               onComment={handleComment} />
           ))}
           <div ref={loadMoreRef} className="feed-load-sentinel" aria-live="polite">
-            {visibleCount < posts.length
+            {hasMore
               ? <><span className="feed-loader" /> Đang tải thêm...</>
               : posts.length > 0 && <span>Bạn đã xem hết bài viết mới.</span>}
           </div>

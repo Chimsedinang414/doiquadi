@@ -104,7 +104,8 @@ client.interceptors.response.use(response => response, async error => {
 });
 
 export const api = {
-  getPosts: () => client.get('/posts').then(response => response.data),
+  getPosts: (page = 0, size = 10) => client.get('/posts', { params: { page, size } }).then(response => response.data),
+  getPostsByLocation: (locationId, page = 0, size = 10) => client.get(`/locations/${locationId}/posts`, { params: { page, size } }).then(response => response.data),
   getProfile: (userId, viewerId) => client.get('/users/' + userId + '/profile', { params: viewerId ? { viewerId } : {} }).then(response => response.data),
   searchUsers: query => client.get('/users/search', { params: { query } }).then(response => response.data),
   getFollowers: userId => client.get('/users/' + userId + '/followers').then(response => response.data),
@@ -138,6 +139,13 @@ export const api = {
   startOAuthLink: provider => client.post(`/oauth2/links/${encodeURIComponent(provider)}/start`)
     .then(response => response.data),
   updateProfile: (userId, data) => client.put('/users/' + userId, data).then(response => response.data),
+
+  // ── Checkins & Collections ──────────────────────────────────
+  checkin: data => client.post('/checkins', data).then(response => response.data),
+  getCheckins: userId => client.get('/users/' + userId + '/checkins').then(response => response.data),
+  createCollection: data => client.post('/collections', data).then(response => response.data),
+  getCollections: userId => client.get('/users/' + userId + '/collections').then(response => response.data),
+  addCollectionItem: (collectionId, data) => client.post('/collections/' + collectionId + '/items', data).then(response => response.data),
 
   // ── Reports ──────────────────────────────────────────────────
   createReport: data => client.post('/reports', data).then(response => response.data),
